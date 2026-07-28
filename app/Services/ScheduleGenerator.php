@@ -23,7 +23,7 @@ class ScheduleGenerator
                 foreach (range(1, 5) as $day) {
                     foreach (range(480, 960, 60) as $start) {
                         $end = $start + $session->duration_minutes;
-                        if ($end > 1080 || !$this->professorAvailable($session->professor_id, $day, $start, $end)) continue;
+                        if ($end > 1080 || !$this->professorAvailable($session->professor_id, $day, $start, $end) || !$this->withinWeeklyHours($placed, $session) || !$this->withinGroupDailyHours($placed, $session, $day)) continue;
                         foreach ($rooms as $room) {
                             if ($room->capacity < $session->group->student_count || ($room->type !== 'mixte' && $room->type !== $session->type)) continue;
                             if ($this->conflicts($placed, $session, $room->id, $day, $start, $end)) continue;
@@ -38,6 +38,14 @@ class ScheduleGenerator
         $schedule->update(['status' => empty($unplaced) ? 'generated' : 'partial']);
         return [$schedule, $unplaced];
     }
-    private function professorAvailable($professor, $day, $start, $end): bool { $blocked = DB::table('professor_availabilities')->where('professor_id',$professor)->where('day_of_week',$day)->where('available',false)->where('start_minute','<',$end)->where('end_minute','>',$start)->exists(); return !$blocked; }
+    private function professorAvailable($professor, $day, $start, $end): bool {
+        $availability = DB::table('professor_availabilities')->where('professor_id', $professor)->where('day_of_week', $day);
+        $blocked = (clone $availability)->where('available', false)->where('start_minute', '<', $end)->where('end_minute', '>', $start)->exists();
+        if ($blocked) return false;
+        $hasPositiveWindows = (clone $availability)->where('available', true)->exists();
+        return !$hasPositiveWindows || (clone $availability)->where('available', true)->where('start_minute', '<=', $start)->where('end_minute', '>=', $end)->exists();
+    }
+    private function withinWeeklyHours(array $placed, TeachingSession $session): bool { $limit = $session->professor->max_weekly_hours; if ($limit === null) return true; $minutes = collect($placed)->filter(fn ($p) => $p['session']->professor_id === $session->professor_id)->sum(fn ($p) => $p['end'] - $p['start']); return $minutes + $session->duration_minutes <= $limit * 60; }
+    private function withinGroupDailyHours(array $placed, TeachingSession $session, int $day): bool { $limit = $session->group->max_daily_minutes; if ($limit === null) return true; $minutes = collect($placed)->filter(fn ($p) => $p['day'] === $day && $p['session']->student_group_id === $session->student_group_id)->sum(fn ($p) => $p['end'] - $p['start']); return $minutes + $session->duration_minutes <= $limit; }
     private function conflicts(array $placed, $session, $room, $day, $start, $end): bool { foreach ($placed as $p) { if ($p['day'] !== $day || $p['end'] <= $start || $p['start'] >= $end) continue; if ($p['room']->id === $room || $p['session']->professor_id === $session->professor_id || $p['session']->student_group_id === $session->student_group_id) return true; } return false; }
 }

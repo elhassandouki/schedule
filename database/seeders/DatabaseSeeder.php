@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(EducationProgramsSeeder::class);
+        $this->call(EducationSemestersSeeder::class);
+        $this->call(PrimaryEducationGroupsSeeder::class);
+        $this->call(CampusClassroomsSeeder::class);
         User::firstOrCreate(['email' => 'admin@planif-uni.test'], [
             'name' => 'Super Administrateur',
             'password' => Hash::make('password'),
