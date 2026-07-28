@@ -8,7 +8,7 @@ class StoreTimetableSessionRequest extends FormRequest
 {
     public function authorize(): bool { return true; }
     public function rules(): array { return [
-        'subject_id' => ['required', 'exists:subjects,id'], 'teacher_id' => ['required', 'exists:teachers,id'],
+        'subject_id' => ['required', 'exists:subjects,id'], 'semester_id' => ['required', 'exists:semesters,id'], 'teacher_id' => ['required', 'exists:teachers,id'],
         'classroom_id' => ['required', 'exists:classrooms,id'], 'section_id' => ['required', 'exists:sections,id'],
         'timeslot_id' => ['required', 'exists:timeslots,id'], 'day_id' => ['required', 'exists:days,id'],
     ]; }

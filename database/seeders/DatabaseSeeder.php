@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(EducationSemestersSeeder::class);
         $this->call(PrimaryEducationGroupsSeeder::class);
         $this->call(CampusClassroomsSeeder::class);
+        $this->call(ManualTimetableDemoSeeder::class);
         User::firstOrCreate(['email' => 'admin@planif-uni.test'], [
             'name' => 'Super Administrateur',
             'password' => Hash::make('password'),
