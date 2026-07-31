@@ -16,6 +16,7 @@ class DiagnoseData extends Command
             'departments', 'programs', 'semesters', 'modules', 'student_groups',
             'teaching_sessions', 'schedules', 'timetable_entries', 'professor_availabilities',
             'users', 'subjects', 'sections', 'teachers', 'timetable_sessions', 'days', 'timeslots', 'classrooms',
+            'professor_module',
         ];
 
         foreach ($tables as $table) {
@@ -26,6 +27,12 @@ class DiagnoseData extends Command
                 $this->line(str_pad($table, 26) . ': ERROR (' . $e->getMessage() . ')');
             }
         }
+
+        $totalModules = DB::table('modules')->count();
+        $modulesWithTeacher = DB::table('professor_module')->distinct('module_id')->count('module_id');
+        $this->newLine();
+        $this->line("modules WITH a professor_module assignment      : {$modulesWithTeacher}");
+        $this->line("modules WITHOUT any assignment (missing teacher): " . ($totalModules - $modulesWithTeacher));
 
         return self::SUCCESS;
     }
