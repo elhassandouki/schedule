@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Use the new comprehensive demo seeder (replaces all old seeders)
-        $this->call(DemoTimetableSeeder::class);
+        // Unified system: seed demo data structure, ready for auto-generation
+        $this->call(UnifiedDemoSeeder::class);
     }
 }
