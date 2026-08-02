@@ -2,31 +2,32 @@
 
 namespace Tests\Feature;
 
+use App\Models\Classroom;
 use App\Models\Department;
-use App\Models\Module;
 use App\Models\Program;
-use App\Models\Schedule;
+use App\Models\SchoolDay;
+use App\Models\Section;
 use App\Models\Semester;
-use App\Models\StudentGroup;
-use App\Models\TeachingSession;
+use App\Models\Subject;
+use App\Models\Teacher;
+use App\Models\Timeslot;
 use App\Models\User;
-use App\Services\ScheduleGenerator;
+use App\Services\AutoGenerateTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-class ScheduleGeneratorTest extends TestCase
+class LegacyScheduleGeneratorTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_professor_weekly_hours_limit_prevents_overbooking(): void
+    public function test_auto_generation_writes_timetable_sessions_for_the_semester(): void
     {
         $professor = User::create([
             'name' => 'Prof Test',
             'email' => 'prof@example.com',
             'password' => bcrypt('secret'),
             'role' => 'prof',
-            'max_weekly_hours' => 1,
         ]);
 
         $department = Department::create(['name' => 'Informatique', 'code' => 'INFO']);
@@ -46,41 +47,19 @@ class ScheduleGeneratorTest extends TestCase
             'number' => 1,
         ]);
 
-        $module = Module::create([
-            'program_id' => $program->id,
-            'name' => 'Algorithmes',
-            'code' => 'ALG001',
-            'weekly_hours' => 2,
-        ]);
-        $group = StudentGroup::create([
-            'semester_id' => $semester->id,
-            'name' => 'G1',
-            'student_count' => 30,
-        ]);
-        DB::table('classrooms')->insert([
-            'name' => 'A101',
-            'capacity' => 50,
-            'type' => 'cours',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $teacher = Teacher::create(['name' => 'Prof Test', 'user_id' => $professor->id]);
+        Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001', 'sessions_per_week' => 1]);
+        Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        Classroom::create(['name' => 'A101', 'capacity' => 50, 'type' => 'classroom']);
+        SchoolDay::create(['name' => 'Monday', 'position' => 1]);
+        SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);
+        Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
+        Timeslot::create(['name' => '10:00-12:00', 'starts_at' => '10:00', 'ends_at' => '12:00', 'position' => 2]);
 
-        $session = TeachingSession::create([
-            'semester_id' => $semester->id,
-            'module_id' => $module->id,
-            'professor_id' => $professor->id,
-            'student_group_id' => $group->id,
-            'type' => 'cours',
-            'duration_minutes' => 60,
-            'occurrences_per_week' => 2,
-        ]);
+        $report = (new AutoGenerateTimetable())->generate($semester->id);
 
-        [$schedule, $unplaced] = (new ScheduleGenerator())->generate($semester->id, 'Test emploi');
-
-        $this->assertInstanceOf(Schedule::class, $schedule);
-        $this->assertCount(1, $unplaced);
-        $this->assertSame($session->id, $unplaced[0]['session_id']);
-        $this->assertSame(2, $unplaced[0]['occurrence']);
-        $this->assertSame(1, DB::table('timetable_entries')->where('teaching_session_id', $session->id)->count());
+        $this->assertTrue($report['success']);
+        $this->assertSame(1, DB::table('timetable_sessions')->where('semester_id', $semester->id)->count());
+        $this->assertSame(0, DB::table('timetable_entries')->count());
     }
 }
