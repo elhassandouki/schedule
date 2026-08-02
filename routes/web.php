@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CrudController;
 use App\Http\Controllers\TimetableSessionController;
+use App\Http\Controllers\TimetableQualityController;
 use App\Http\Controllers\ProfessorController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,5 +32,10 @@ Route::middleware('auth')->group(function () {
     });
     Route::post('/schedules/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('schedules.generate');
     Route::get('/schedules/{schedule}', [DashboardController::class, 'show'])->name('schedules.show');
+    
+    // Timetable Quality Reports
+    Route::get('/timetable/{semesterId}/quality', [TimetableQualityController::class, 'show'])->name('timetable.quality');
+    Route::get('/api/timetable/{semesterId}/quality/summary', [TimetableQualityController::class, 'summary'])->name('timetable.quality.summary');
+    
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 });
