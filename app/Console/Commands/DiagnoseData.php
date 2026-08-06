@@ -8,14 +8,14 @@ use Illuminate\Support\Facades\DB;
 class DiagnoseData extends Command
 {
     protected $signature = 'timetable:diagnose';
-    protected $description = 'Print row counts for every table relevant to the legacy/unified timetable migration.';
+    protected $description = 'Print row counts for the tables relevant to the unified timetable system.';
 
     public function handle(): int
     {
         $tables = [
             'departments', 'programs', 'semesters', 'modules', 'student_groups',
-            'teaching_sessions', 'schedules', 'timetable_entries', 'professor_availabilities',
-            'users', 'subjects', 'sections', 'teachers', 'timetable_sessions', 'days', 'timeslots', 'classrooms',
+            'teaching_sessions', 'professor_availabilities', 'users', 'subjects', 'sections', 'teachers',
+            'timetable_sessions', 'days', 'timeslots', 'classrooms',
             'professor_module',
         ];
 
