@@ -299,106 +299,133 @@ return [
     */
 
     'menu' => [
-        ['text' => 'Tableau de bord', 'url' => 'dashboard', 'icon' => 'fas fa-fw fa-tachometer-alt'],
-        ['header' => 'GESTION UNIVERSITAIRE'],
-        ['text' => 'Années universitaires', 'url' => 'gestion/annees', 'icon' => 'fas fa-calendar'],
-        ['text' => 'Départements', 'url' => 'gestion/departements', 'icon' => 'fas fa-building'],
-        ['text' => 'Filières', 'url' => 'gestion/filieres', 'icon' => 'fas fa-graduation-cap'],
-        ['text' => 'Semestres', 'url' => 'gestion/semestres', 'icon' => 'fas fa-calendar-alt'],
-        ['text' => 'Modules', 'url' => 'gestion/modules', 'icon' => 'fas fa-book'],
-        ['text' => 'Groupes', 'url' => 'gestion/groupes', 'icon' => 'fas fa-users'],
-        ['text' => 'Professeurs & accès', 'url' => 'gestion/professeurs', 'icon' => 'fas fa-user-tie'],
-        ['text' => 'Modules des professeurs', 'url' => 'gestion/affectations-modules', 'icon' => 'fas fa-link'],
-        ['text' => 'Salles', 'url' => 'gestion/salles', 'icon' => 'fas fa-door-open'],
-        ['text' => 'Séances à planifier', 'url' => 'gestion/seances', 'icon' => 'fas fa-clock'],
-        ['text' => 'Indisponibilités', 'url' => 'gestion/indisponibilites', 'icon' => 'fas fa-user-clock'],
-        ['text' => 'Emplois générés', 'url' => 'gestion/emplois', 'icon' => 'fas fa-table'],
-        ['text' => 'Créneaux', 'url' => 'gestion/creneaux', 'icon' => 'fas fa-calendar-check'],
-        ['header' => 'MANUAL TIMETABLE'],
-        ['text' => 'Teachers', 'url' => 'gestion/teachers', 'icon' => 'fas fa-user-tie'],
-        ['text' => 'Subjects', 'url' => 'gestion/subjects', 'icon' => 'fas fa-book'],
-        ['text' => 'Sections', 'url' => 'gestion/sections', 'icon' => 'fas fa-users'],
-        ['text' => 'Students', 'url' => 'gestion/students', 'icon' => 'fas fa-user-graduate'],
-        ['text' => 'Timeslots', 'url' => 'gestion/timeslots', 'icon' => 'fas fa-clock'],
-        ['text' => 'Days', 'url' => 'gestion/days', 'icon' => 'fas fa-calendar-day'],
-        ['text' => 'Manual timetable', 'url' => 'timetable/sessions', 'icon' => 'fas fa-table'],
-        // Navbar items:
+        // Dashboard
         [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
+            'text' => 'Tableau de bord',
+            'url' => 'dashboard',
+            'icon' => 'fas fa-fw fa-tachometer-alt',
+            'active' => ['dashboard'],
         ],
 
-        // Sidebar items:
+        // Timetable Management
+        ['header' => 'EMPLOI DU TEMPS'],
         [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
-        [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
-        [
-            'text' => 'pages',
-            'url' => 'admin/pages',
-            'icon' => 'far fa-fw fa-file',
-            'label' => 4,
-            'label_color' => 'success',
-        ],
-        ['header' => 'account_settings'],
-        [
-            'text' => 'profile',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-user',
-        ],
-        [
-            'text' => 'change_password',
-            'url' => 'admin/settings',
-            'icon' => 'fas fa-fw fa-lock',
-        ],
-        [
-            'text' => 'multilevel',
-            'icon' => 'fas fa-fw fa-share',
+            'text' => 'Emploi du temps',
+            'icon' => 'fas fa-fw fa-calendar',
+            'active' => ['timetable*', 'schedules*'],
             'submenu' => [
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
+                    'text' => 'Sessions',
+                    'url' => 'timetable/sessions',
+                    'icon' => 'fas fa-list',
+                    'active' => ['timetable/sessions*'],
                 ],
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
-                    'submenu' => [
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                        ],
-                        [
-                            'text' => 'level_two',
-                            'url' => '#',
-                            'submenu' => [
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                                [
-                                    'text' => 'level_three',
-                                    'url' => '#',
-                                ],
-                            ],
-                        ],
-                    ],
+                    'text' => 'Ajouter session',
+                    'url' => 'timetable/sessions/create',
+                    'icon' => 'fas fa-plus',
+                    'active' => ['timetable/sessions/create*'],
                 ],
                 [
-                    'text' => 'level_one',
-                    'url' => '#',
+                    'text' => 'Qualité',
+                    'url' => 'timetable/1/quality',
+                    'icon' => 'fas fa-chart-bar',
+                    'active' => ['timetable*/quality*'],
                 ],
             ],
         ],
+
+        [
+            'text' => 'Génération',
+            'icon' => 'fas fa-fw fa-magic',
+            'active' => false,
+            'submenu' => [
+                [
+                    'text' => 'Générer',
+                    'url' => 'dashboard',
+                    'icon' => 'fas fa-wand-magic-sparkles',
+                ],
+                [
+                    'text' => 'Historique',
+                    'url' => 'dashboard',
+                    'icon' => 'fas fa-history',
+                ],
+            ],
+        ],
+
+        // Administration
+        ['header' => 'ADMINISTRATION'],
+        [
+            'text' => 'Gestion',
+            'icon' => 'fas fa-fw fa-cog',
+            'submenu' => [
+                [
+                    'text' => 'Départements',
+                    'url' => 'gestion/departments',
+                    'icon' => 'fas fa-building',
+                ],
+                [
+                    'text' => 'Programmes',
+                    'url' => 'gestion/programs',
+                    'icon' => 'fas fa-graduation-cap',
+                ],
+                [
+                    'text' => 'Semestres',
+                    'url' => 'gestion/semesters',
+                    'icon' => 'fas fa-calendar-alt',
+                ],
+                [
+                    'text' => 'Modules',
+                    'url' => 'gestion/modules',
+                    'icon' => 'fas fa-book',
+                ],
+                [
+                    'text' => 'Groupes d\'étudiants',
+                    'url' => 'gestion/student_groups',
+                    'icon' => 'fas fa-users',
+                ],
+                [
+                    'text' => 'Professeurs',
+                    'url' => 'gestion/professeurs',
+                    'icon' => 'fas fa-chalkboard-user',
+                ],
+                [
+                    'text' => 'Salles',
+                    'url' => 'gestion/classrooms',
+                    'icon' => 'fas fa-door-open',
+                ],
+                [
+                    'text' => 'Créneaux horaires',
+                    'url' => 'gestion/timeslots',
+                    'icon' => 'fas fa-clock',
+                ],
+                [
+                    'text' => 'Jours',
+                    'url' => 'gestion/days',
+                    'icon' => 'fas fa-calendar-day',
+                ],
+            ],
+        ],
+
+        // User Account
+        ['header' => 'COMPTE'],
+        [
+            'text' => 'Mon profil',
+            'url' => '#',
+            'icon' => 'fas fa-fw fa-user',
+        ],
+        [
+            'text' => 'Préférences',
+            'url' => '#',
+            'icon' => 'fas fa-fw fa-sliders-h',
+        ],
+        [
+            'text' => 'Déconnexion',
+            'url' => 'logout',
+            'icon' => 'fas fa-fw fa-sign-out-alt',
+            'onclick' => 'event.preventDefault(); document.getElementById("logout-form").submit();',
+        ],
+    ],
         ['header' => 'labels'],
         [
             'text' => 'important',
