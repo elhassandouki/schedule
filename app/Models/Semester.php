@@ -7,5 +7,4 @@ class Semester extends Model {
     public function modules() { return $this->hasMany(Module::class); } 
     public function subjects() { return $this->hasMany(Subject::class); } 
     public function timetableSessions() { return $this->hasMany(TimetableSession::class); } 
-    public function groups() { return $this->hasMany(StudentGroup::class); } 
 }

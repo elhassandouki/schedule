@@ -17,7 +17,7 @@ class DashboardController extends Controller
             'counts' => [
                 'filières' => DB::table('programs')->count(),
                 'semestres' => DB::table('semesters')->count(),
-                'groupes' => DB::table('student_groups')->count(),
+                'groupes' => DB::table('sections')->count(),
                 'professeurs' => DB::table('users')->where('role', 'prof')->count(),
             ],
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
