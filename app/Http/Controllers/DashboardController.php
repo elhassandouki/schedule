@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Semester;
 use App\Models\Teacher;
 use App\Models\TimetableSession;
+use App\Models\ScheduleHistory;
 use App\Services\AutoGenerateTimetable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class DashboardController extends Controller
                 'groupes' => DB::table('student_groups')->count(),
                 'professeurs' => DB::table('users')->where('role', 'prof')->count(),
             ],
-            'recentSemesters' => Semester::withCount('timetableSessions')->latest()->take(6)->get(),
+            'schedules' => ScheduleHistory::latest()->take(6)->get(),
             'semesters' => DB::table('semesters')->join('programs', 'programs.id', '=', 'semesters.program_id')->select('semesters.*', 'programs.name as program')->get(),
         ]);
     }
@@ -29,8 +30,18 @@ class DashboardController extends Controller
         $data = $request->validate(['semester_id' => 'required|exists:semesters,id', 'name' => 'required|string|max:100']);
         $report = $generator->generate((int) $data['semester_id']);
 
+        // Record generation history
+        ScheduleHistory::create([
+            'semester_id' => $data['semester_id'],
+            'name' => $data['name'],
+            'status' => $report['success'] ? 'generated' : 'partial',
+            'generated_sessions_count' => $report['sessions_generated'] ?? 0,
+            'skipped_sessions_count' => $report['sessions_skipped'] ?? 0,
+            'generated_by_user_id' => auth()->id(),
+        ]);
+
         return redirect()->route('timetable.show', $data['semester_id'])
-            ->with('generation', $report['success'] ? 'Emploi généré sans conflit.' : 'Génération partielle : certaines séances n’ont pas pu être placées.')
+            ->with('generation', $report['success'] ? 'Emploi généré sans conflit.' : 'Génération partielle : certaines séances n'ont pas pu être placées.')
             ->with('unplaced', []);
     }
 
@@ -108,4 +119,3 @@ class DashboardController extends Controller
             ->get();
     }
 }
-

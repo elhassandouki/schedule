@@ -1,0 +1,96 @@
+@extends('layouts.app')
+
+@section('title', 'Emploi du temps — ' . $semester->name)
+@section('page_title', 'Emploi du temps')
+
+@section('breadcrumb')
+    <ol class="breadcrumb float-sm-right">
+        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Accueil</a></li>
+        <li class="breadcrumb-item active">{{ $semester->program->name }} — {{ $semester->name }}</li>
+    </ol>
+@endsection
+
+@section('content')
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <h2 class="mb-1">{{ $semester->program->name }}</h2>
+        <p class="text-muted mb-3">
+            <i class="fas fa-graduation-cap mr-2"></i>
+            {{ $semester->name }}
+        </p>
+        <a href="{{ route('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Retour au tableau de bord
+        </a>
+    </div>
+
+    <!-- Sessions Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-0">
+            <h4 class="card-title mb-0">
+                <i class="fas fa-calendar-alt text-primary mr-2"></i>
+                Sessions planifiées ({{ count($entries) }})
+            </h4>
+        </div>
+
+        <div class="card-body p-0">
+            @if (count($entries) > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Jour</th>
+                                <th>Créneau</th>
+                                <th>Cours</th>
+                                <th>Groupe</th>
+                                <th>Enseignant</th>
+                                <th>Salle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($entries as $entry)
+                                <tr>
+                                    <td class="font-weight-600">{{ $entry->day_name }}</td>
+                                    <td>
+                                        <span class="badge badge-info">{{ $entry->starts_at }} - {{ $entry->ends_at }}</span>
+                                    </td>
+                                    <td>{{ $entry->module }}</td>
+                                    <td><span class="badge badge-secondary">{{ $entry->groupe }}</span></td>
+                                    <td>{{ $entry->professeur }}</td>
+                                    <td>{{ $entry->salle }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="p-4 text-center text-muted">
+                    <i class="fas fa-inbox mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
+                    <p>Aucune session planifiée pour ce semestre</p>
+                    <a href="{{ route('timetable.generate') }}" class="btn btn-sm btn-primary mt-3">
+                        <i class="fas fa-wand-magic-sparkles mr-2"></i>
+                        Générer l'emploi du temps
+                    </a>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <a href="{{ route('timetable.quality', $semester->id) }}" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-chart-bar mr-2"></i>
+                Voir le rapport de qualité
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-block">
+                <i class="fas fa-home mr-2"></i>
+                Retour au tableau de bord
+            </a>
+        </div>
+    </div>
+</div>
+@endsection

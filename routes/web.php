@@ -30,8 +30,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/gestion/{resource}/{id}', [CrudController::class, 'update'])->name('crud.update');
         Route::delete('/gestion/{resource}/{id}', [CrudController::class, 'destroy'])->name('crud.destroy');
     });
-    Route::post('/schedules/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('schedules.generate');
-    Route::get('/schedules/{schedule}', [DashboardController::class, 'show'])->name('schedules.show');
+    Route::post('/timetable/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate');
+    Route::get('/timetable/{semester}', [DashboardController::class, 'show'])->name('timetable.show');
     
     // Timetable Quality Reports
     Route::get('/timetable/{semesterId}/quality', [TimetableQualityController::class, 'show'])->name('timetable.quality');

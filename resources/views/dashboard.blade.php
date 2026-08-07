@@ -46,7 +46,7 @@
                         </h4>
                     </div>
 
-                    <form action="{{ route('schedules.generate') }}" method="post">
+                    <form action="{{ route('timetable.generate') }}" method="post">
                         @csrf
 
                         <div class="card-body">
@@ -120,9 +120,9 @@
                                     {{ ucfirst($schedule->status) }}
                                 </span>
                                 <a 
-                                    href="{{ route('schedules.show', $schedule) }}" 
+                                    href="{{ route('timetable.show', $schedule->semester_id) }}" 
                                     class="btn btn-sm btn-outline-primary ml-2"
-                                    title="Voir les détails"
+                                    title="Voir l'emploi du temps"
                                 >
                                     <i class="fas fa-eye"></i>
                                 </a>
