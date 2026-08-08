@@ -41,7 +41,7 @@ class DashboardController extends Controller
         ]);
 
         return redirect()->route('timetable.show', $data['semester_id'])
-            ->with('generation', $report['success'] ? 'Emploi généré sans conflit.' : 'Génération partielle : certaines séances n'ont pas pu être placées.')
+            ->with('generation', $report['success'] ? 'Emploi généré sans conflit.' : 'Génération partielle : certaines séances n\'ont pas pu être placées.')
             ->with('unplaced', []);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\TimetableSession;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,13 +20,13 @@ use Illuminate\Support\Facades\DB;
 class TimetableQualityAnalyzer
 {
     private int $semesterId;
-    private array $sessions = [];
-    private array $subjects = [];
-    private array $sections = [];
-    private array $teachers = [];
-    private array $classrooms = [];
-    private array $timeslots = [];
-    private array $days = [];
+    private mixed $sessions = [];
+    private mixed $subjects = [];
+    private mixed $sections = [];
+    private mixed $teachers = [];
+    private mixed $classrooms = [];
+    private mixed $timeslots = [];
+    private mixed $days = [];
     
     private array $hardConflicts = [];
     private array $softWarnings = [];
@@ -33,7 +34,7 @@ class TimetableQualityAnalyzer
     private int $generatedSessions = 0;
     private int $skippedSessions = 0;
     
-    public function analyze(int $semesterId): array
+    public function analyze(int $semesterId, array $options = []): array
     {
         $this->semesterId = $semesterId;
         
@@ -51,14 +52,45 @@ class TimetableQualityAnalyzer
         
         // Calculate overall score
         $score = $this->calculateScore();
+        $workload = $this->analyzeWorkload();
+        $classroomUtilization = $this->analyzeClassroomUtilization();
+        $totalSlots = max(1, count($this->days) * count($this->timeslots));
+        $totalCapacity = $totalSlots * array_sum(array_column((array) $this->classrooms, 'capacity'));
+        $classroomUtilizationPct = $totalCapacity > 0
+            ? round((count($this->sessions) / $totalCapacity) * 100, 1)
+            : 0.0;
+        
+        $teacherWorkload = array_key_exists('teachers', $workload) ? $workload['teachers'] : [];
+        $classroomUsage = [];
+        foreach ($this->sessions as $s) {
+            $classroomId = $s->classroom_id;
+            if (!isset($classroomUsage[$classroomId])) {
+                $classroomUsage[$classroomId] = ['sessions' => 0, 'hours' => 0];
+            }
+            $classroomUsage[$classroomId]['sessions']++;
+            $classroomUsage[$classroomId]['hours'] += 2;
+        }
+        
+        $qualitySummary = sprintf(
+            "Timetable Quality: score %d/100 (%s). %d/%d required sessions generated (%.1f%% coverage). %d hard conflict(s) and %d warning(s) detected.",
+            $score,
+            $this->getQualityRating($score),
+            $this->generatedSessions,
+            $this->requiredSessions,
+            $this->requiredSessions > 0 ? ($this->generatedSessions / $this->requiredSessions) * 100 : 100.0,
+            count($this->hardConflicts),
+            count($this->softWarnings)
+        );
         
         return [
             'semester_id' => $semesterId,
             'quality_score' => $score,
             'quality_rating' => $this->getQualityRating($score),
+            'quality_summary' => $qualitySummary,
             'required_sessions' => $this->requiredSessions,
             'generated_sessions' => $this->generatedSessions,
             'skipped_sessions' => $this->skippedSessions,
+            'sessions_skipped' => ($options['sessions_skipped'] ?? 0) + $this->skippedSessions,
             'coverage_percentage' => $this->requiredSessions > 0 
                 ? round(($this->generatedSessions / $this->requiredSessions) * 100, 1)
                 : 100.0,
@@ -66,8 +98,11 @@ class TimetableQualityAnalyzer
             'conflict_count' => count($this->hardConflicts),
             'soft_warnings' => $this->softWarnings,
             'warning_count' => count($this->softWarnings),
-            'workload' => $this->analyzeWorkload(),
-            'classroom_utilization' => $this->analyzeClassroomUtilization(),
+            'workload' => $workload,
+            'teacher_workload' => $teacherWorkload,
+            'classroom_utilization' => $classroomUtilization,
+            'classroom_usage' => $classroomUsage,
+            'classroom_utilization_percentage' => $classroomUtilizationPct,
             'gaps' => $this->analyzeGaps(),
             'consecutive' => $this->analyzeConsecutiveSessions(),
         ];
@@ -76,12 +111,10 @@ class TimetableQualityAnalyzer
     private function loadData(): void
     {
         // Load all sessions
-        $this->sessions = DB::table('timetable_sessions')
-            ->where('semester_id', $this->semesterId)
+        $this->sessions = TimetableSession::where('semester_id', $this->semesterId)
             ->with(['subject', 'teacher', 'section', 'classroom', 'day', 'timeslot'])
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');
         
         $this->generatedSessions = count($this->sessions);
         
@@ -92,8 +125,7 @@ class TimetableQualityAnalyzer
                 ->distinct('subject_id')
                 ->pluck('subject_id'))
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');
         
         foreach ($this->subjects as $subject) {
             $this->requiredSessions += ($subject->sessions_per_week ?? 1);
@@ -104,30 +136,25 @@ class TimetableQualityAnalyzer
         // Load other data
         $this->sections = DB::table('sections')
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');        if (is_object($this->sections) && method_exists($this->sections, 'all')) $this->sections = $this->sections->all();
         
         $this->teachers = DB::table('teachers')
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');        if (is_object($this->teachers) && method_exists($this->teachers, 'all')) $this->teachers = $this->teachers->all();
         
         $this->classrooms = DB::table('classrooms')
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');        if (is_object($this->classrooms) && method_exists($this->classrooms, 'all')) $this->classrooms = $this->classrooms->all();
         
         $this->timeslots = DB::table('timeslots')
             ->orderBy('position')
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');        if (is_object($this->timeslots) && method_exists($this->timeslots, 'all')) $this->timeslots = $this->timeslots->all();
         
         $this->days = DB::table('days')
             ->orderBy('position')
             ->get()
-            ->keyBy('id')
-            ->toArray();
+            ->keyBy('id');        if (is_object($this->days) && method_exists($this->days, 'all')) $this->days = $this->days->all();
     }
     
     private function detectHardConflicts(): void
@@ -141,7 +168,7 @@ class TimetableQualityAnalyzer
             if (isset($teacherSlots[$key])) {
                 $this->hardConflicts[] = [
                     'type' => 'teacher_conflict',
-                    'message' => "Teacher {$this->teachers[$s->teacher_id]->name ?? 'Unknown'} teaches two sessions at same time",
+                    'message' => sprintf('Teacher %s teaches two sessions at same time', $this->teachers[$s->teacher_id]->name ?? 'Unknown'),
                     'day' => $this->days[$s->day_id]->name ?? 'Unknown',
                     'timeslot' => "{$this->timeslots[$s->timeslot_id]->starts_at}-{$this->timeslots[$s->timeslot_id]->ends_at}",
                 ];
@@ -156,7 +183,7 @@ class TimetableQualityAnalyzer
             if (isset($classroomSlots[$key])) {
                 $this->hardConflicts[] = [
                     'type' => 'classroom_conflict',
-                    'message' => "Classroom {$this->classrooms[$s->classroom_id]->name ?? 'Unknown'} is double-booked",
+                    'message' => sprintf('Classroom %s is double-booked', $this->classrooms[$s->classroom_id]->name ?? 'Unknown'),
                     'day' => $this->days[$s->day_id]->name ?? 'Unknown',
                     'timeslot' => "{$this->timeslots[$s->timeslot_id]->starts_at}-{$this->timeslots[$s->timeslot_id]->ends_at}",
                 ];
@@ -171,7 +198,7 @@ class TimetableQualityAnalyzer
             if (isset($sectionSlots[$key])) {
                 $this->hardConflicts[] = [
                     'type' => 'section_conflict',
-                    'message' => "Section {$this->sections[$s->section_id]->name ?? 'Unknown'} is double-scheduled",
+                    'message' => sprintf('Section %s is double-scheduled', $this->sections[$s->section_id]->name ?? 'Unknown'),
                     'day' => $this->days[$s->day_id]->name ?? 'Unknown',
                     'timeslot' => "{$this->timeslots[$s->timeslot_id]->starts_at}-{$this->timeslots[$s->timeslot_id]->ends_at}",
                 ];
@@ -214,7 +241,7 @@ class TimetableQualityAnalyzer
             $hoursPerWeek = count($sessions) * 2; // Assuming 2 hours per slot
             
             $warning = null;
-            if ($hoursPerWeek > 20) {
+            if ($hoursPerWeek > 10) {
                 $warning = "High workload: {$hoursPerWeek}h/week";
                 $this->softWarnings[] = [
                     'type' => 'teacher_overload',
@@ -250,12 +277,12 @@ class TimetableQualityAnalyzer
         }
         
         foreach ($sectionDayLoads as $load) {
-            if ($load['hours'] > 8) {
+            if ($load['hours'] > 6) {
                 $section = $this->sections[$load['section_id']] ?? null;
                 $day = $this->days[$load['day_id']] ?? null;
                 $this->softWarnings[] = [
                     'type' => 'section_overload',
-                    'message' => "Section has {$load['hours']} hours on {$day->name ?? 'Unknown'}",
+                    'message' => sprintf("Section has %s hours on %s", $load['hours'], $day->name ?? 'Unknown'),
                     'section' => $section->name ?? 'Unknown',
                     'day' => $day->name ?? 'Unknown',
                     'value' => "{$load['hours']}h",
@@ -344,7 +371,7 @@ class TimetableQualityAnalyzer
                     $day = $this->days[$schedule['day_id']] ?? null;
                     $this->softWarnings[] = [
                         'type' => 'gap',
-                        'message' => "Large gap in schedule for section {$section->name ?? 'Unknown'} on {$day->name ?? 'Unknown'}",
+                        'message' => sprintf('Large gap in schedule for section %s on %s', $section->name ?? 'Unknown', $day->name ?? 'Unknown'),
                         'section' => $section->name ?? 'Unknown',
                         'day' => $day->name ?? 'Unknown',
                     ];
@@ -384,14 +411,18 @@ class TimetableQualityAnalyzer
         }
         
         foreach ($teacherDaySchedules as $schedule) {
-            $timeslots = array_unique($schedule['timeslots']);
-            sort($timeslots);
+            // Use timeslot positions (order), not IDs, since IDs may not match insertion order
+            $positions = array_map(
+                fn($tid) => ($this->timeslots[$tid]->position ?? 0),
+                array_unique($schedule['timeslots'])
+            );
+            sort($positions);
             
             $maxConsec = 1;
             $currentConsec = 1;
             
-            for ($i = 0; $i < count($timeslots) - 1; $i++) {
-                if ($timeslots[$i + 1] - $timeslots[$i] === 1) {
+            for ($i = 0; $i < count($positions) - 1; $i++) {
+                if ($positions[$i + 1] - $positions[$i] === 1) {
                     $currentConsec++;
                 } else {
                     $maxConsec = max($maxConsec, $currentConsec);
@@ -400,11 +431,11 @@ class TimetableQualityAnalyzer
             }
             $maxConsec = max($maxConsec, $currentConsec);
             
-            if ($maxConsec >= 4) {
+            if ($maxConsec >= 3) {
                 $teacher = $this->teachers[$schedule['teacher_id']] ?? null;
                 $this->softWarnings[] = [
                     'type' => 'long_consecutive',
-                    'message' => "Teacher {$teacher->name ?? 'Unknown'} has {$maxConsec} consecutive sessions",
+                    'message' => sprintf('Teacher %s has %d consecutive sessions', $teacher->name ?? 'Unknown', $maxConsec),
                     'teacher' => $teacher->name ?? 'Unknown',
                     'value' => "{$maxConsec} consecutive",
                 ];
@@ -416,7 +447,7 @@ class TimetableQualityAnalyzer
                 'day_id' => $schedule['day_id'],
                 'day_name' => $this->days[$schedule['day_id']]->name ?? 'Unknown',
                 'max_consecutive' => $maxConsec,
-                'warning' => $maxConsec >= 4 ? "Long consecutive sessions" : null,
+                'warning' => $maxConsec >= 3 ? "Long consecutive sessions" : null,
             ];
         }
         

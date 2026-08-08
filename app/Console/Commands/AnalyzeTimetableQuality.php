@@ -23,10 +23,10 @@ class AnalyzeTimetableQuality extends Command
         $this->info($report['summary'] ?? 'No generation summary available.');
         $this->info('');
         $this->info('Hard conflicts:');
-        $this->line($analysis['hard_conflicts'] ? implode(PHP_EOL, $analysis['hard_conflicts']) : 'None');
+        $this->line($analysis['hard_conflicts'] ? implode(PHP_EOL, array_map(fn($c) => '['.$c['type'].'] '.$c['message'], $analysis['hard_conflicts'])) : 'None');
         $this->info('');
         $this->info('Soft warnings:');
-        $this->line($analysis['soft_warnings'] ? implode(PHP_EOL, $analysis['soft_warnings']) : 'None');
+        $this->line($analysis['soft_warnings'] ? implode(PHP_EOL, array_map(fn($w) => '['.$w['type'].'] '.$w['message'], $analysis['soft_warnings'])) : 'None');
         $this->info('');
         $this->info('Workload analysis:');
         $this->table(['Teacher', 'Sessions', 'Hours'], collect($analysis['teacher_workload'])->map(function ($entry, $teacherId) {

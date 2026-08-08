@@ -109,8 +109,8 @@ class TimetableQualityAnalyzerTest extends TestCase
     {
         $data = $this->seedSemesterWithSessions();
         TimetableSession::create(['subject_id' => $data['subject']->id, 'teacher_id' => $data['teacher']->id, 'classroom_id' => $data['classroom']->id, 'section_id' => $data['section']->id, 'semester_id' => $data['semester']->id, 'day_id' => $data['day']->id, 'timeslot_id' => $data['timeslot']->id]);
-        TimetableSession::create(['subject_id' => $data['subject']->id, 'teacher_id' => $data['teacher']->id, 'classroom_id' => $data['classroom']->id, 'section_id' => $data['section']->id, 'semester_id' => $data['semester']->id, 'day_id' => $data['day2']->id, 'timeslot_id' => $data['timeslot2']->id]);
-        TimetableSession::create(['subject_id' => $data['subject']->id, 'teacher_id' => $data['teacher']->id, 'classroom_id' => $data['classroom']->id, 'section_id' => $data['section']->id, 'semester_id' => $data['semester']->id, 'day_id' => $data['day3']->id, 'timeslot_id' => $data['timeslot3']->id]);
+        TimetableSession::create(['subject_id' => $data['subject']->id, 'teacher_id' => $data['teacher']->id, 'classroom_id' => $data['classroom']->id, 'section_id' => $data['section']->id, 'semester_id' => $data['semester']->id, 'day_id' => $data['day']->id, 'timeslot_id' => $data['timeslot2']->id]);
+        TimetableSession::create(['subject_id' => $data['subject']->id, 'teacher_id' => $data['teacher']->id, 'classroom_id' => $data['classroom']->id, 'section_id' => $data['section']->id, 'semester_id' => $data['semester']->id, 'day_id' => $data['day']->id, 'timeslot_id' => $data['timeslot3']->id]);
         $analysis = (new TimetableQualityAnalyzer())->analyze($data['semester']->id);
         $this->assertNotEmpty($analysis['soft_warnings']);
     }

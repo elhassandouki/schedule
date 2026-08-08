@@ -106,10 +106,23 @@ class UnifiedDemoSeeder extends Seeder
         ]);
 
         // ════════════════════════════════════════════════════════════
+        // 3b. ACADEMIC YEAR (required by semesters.academic_year_id NOT NULL)
+        // ════════════════════════════════════════════════════════════
+        $academicYearId = DB::table('academic_years')->insertGetId([
+            'name' => '2026/2027',
+            'starts_on' => '2026-09-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        // ════════════════════════════════════════════════════════════
         // 4. SEMESTERS
         // ════════════════════════════════════════════════════════════
         $sem1_1 = DB::table('semesters')->insertGetId([
             'program_id' => $prog1,
+            'academic_year_id' => $academicYearId,
             'name' => 'Semestre 1',
             'number' => 1,
             'created_at' => $now,
@@ -118,6 +131,7 @@ class UnifiedDemoSeeder extends Seeder
 
         $sem1_2 = DB::table('semesters')->insertGetId([
             'program_id' => $prog1,
+            'academic_year_id' => $academicYearId,
             'name' => 'Semestre 2',
             'number' => 2,
             'created_at' => $now,
@@ -126,6 +140,7 @@ class UnifiedDemoSeeder extends Seeder
 
         $sem2_1 = DB::table('semesters')->insertGetId([
             'program_id' => $prog2,
+            'academic_year_id' => $academicYearId,
             'name' => 'Semestre 1',
             'number' => 1,
             'created_at' => $now,
@@ -344,6 +359,7 @@ class UnifiedDemoSeeder extends Seeder
         // 11. TIMESLOTS (Fixed Time Windows)
         // ════════════════════════════════════════════════════════════
         $ts1 = DB::table('timeslots')->insertGetId([
+            'name' => '08:00-10:00',
             'starts_at' => '08:00',
             'ends_at' => '10:00',
             'position' => 1,
@@ -352,6 +368,7 @@ class UnifiedDemoSeeder extends Seeder
         ]);
 
         $ts2 = DB::table('timeslots')->insertGetId([
+            'name' => '10:00-12:00',
             'starts_at' => '10:00',
             'ends_at' => '12:00',
             'position' => 2,
@@ -360,6 +377,7 @@ class UnifiedDemoSeeder extends Seeder
         ]);
 
         $ts3 = DB::table('timeslots')->insertGetId([
+            'name' => '13:00-15:00',
             'starts_at' => '13:00',
             'ends_at' => '15:00',
             'position' => 3,
@@ -368,6 +386,7 @@ class UnifiedDemoSeeder extends Seeder
         ]);
 
         $ts4 = DB::table('timeslots')->insertGetId([
+            'name' => '15:00-17:00',
             'starts_at' => '15:00',
             'ends_at' => '17:00',
             'position' => 4,

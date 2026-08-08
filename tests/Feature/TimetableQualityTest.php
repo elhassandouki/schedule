@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\TimetableQualityAnalyzer;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -31,13 +32,12 @@ class TimetableQualityTest extends TestCase
      */
     public function test_admin_can_view_quality_report()
     {
-        $admin = DB::table('users')
-            ->where('role', 'super_admin')
+        $admin = User::where('role', 'super_admin')
             ->first();
         
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertStatus(200);
@@ -50,8 +50,7 @@ class TimetableQualityTest extends TestCase
      */
     public function test_chef_can_view_quality_report_for_own_department()
     {
-        $chef = DB::table('users')
-            ->where('role', 'chef_departement')
+        $chef = User::where('role', 'chef_departement')
             ->first();
         
         $program = DB::table('programs')
@@ -70,7 +69,7 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('No semester for program');
         }
         
-        $response = $this->actingAs((object) $chef)
+        $response = $this->actingAs($chef)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertStatus(200);
@@ -81,8 +80,7 @@ class TimetableQualityTest extends TestCase
      */
     public function test_chef_cannot_view_quality_report_for_other_department()
     {
-        $chef = DB::table('users')
-            ->where('role', 'chef_departement')
+        $chef = User::where('role', 'chef_departement')
             ->first();
         
         // Find a semester from a different department
@@ -102,7 +100,7 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('No semester for other program');
         }
         
-        $response = $this->actingAs((object) $chef)
+        $response = $this->actingAs($chef)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertStatus(403);
@@ -113,8 +111,7 @@ class TimetableQualityTest extends TestCase
      */
     public function test_prof_can_view_quality_report_for_own_semester()
     {
-        $prof = DB::table('users')
-            ->where('role', 'prof')
+        $prof = User::where('role', 'prof')
             ->first();
         
         if (!$prof) {
@@ -138,7 +135,7 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('Professor teaches no sessions');
         }
         
-        $response = $this->actingAs((object) $prof)
+        $response = $this->actingAs($prof)
             ->get("/timetable/{$semester}/quality");
         
         $response->assertStatus(200);
@@ -149,8 +146,7 @@ class TimetableQualityTest extends TestCase
      */
     public function test_prof_cannot_view_quality_report_for_other_semester()
     {
-        $prof = DB::table('users')
-            ->where('role', 'prof')
+        $prof = User::where('role', 'prof')
             ->first();
         
         if (!$prof) {
@@ -174,7 +170,7 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('Professor teaches all semesters');
         }
         
-        $response = $this->actingAs((object) $prof)
+        $response = $this->actingAs($prof)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertStatus(403);
@@ -185,10 +181,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_quality_score_is_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('/100');
@@ -200,10 +196,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_hard_conflicts_section_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('Hard Conflicts');
@@ -214,10 +210,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_warnings_section_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('Warnings');
@@ -228,10 +224,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_coverage_percentage_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('Coverage');
@@ -243,10 +239,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_teacher_workload_section_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('Teacher Workload');
@@ -257,10 +253,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_classroom_utilization_section_displayed()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('Classroom Utilization');
@@ -271,10 +267,10 @@ class TimetableQualityTest extends TestCase
      */
     public function test_quality_api_endpoint_returns_json()
     {
-        $admin = DB::table('users')->where('role', 'super_admin')->first();
+        $admin = User::where('role', 'super_admin')->first();
         $semester = DB::table('semesters')->first();
         
-        $response = $this->actingAs((object) $admin)
+        $response = $this->actingAs($admin)
             ->getJson("/api/timetable/{$semester->id}/quality/summary");
         
         $response->assertStatus(200);
@@ -332,7 +328,7 @@ class TimetableQualityTest extends TestCase
         $analyzer = new TimetableQualityAnalyzer();
         $report = $analyzer->analyze($semester->id);
         
-        $this->assertIn($report['quality_rating'], ['Excellent', 'Good', 'Needs Improvement', 'Poor']);
+        $this->assertContains($report['quality_rating'], ['Excellent', 'Good', 'Needs Improvement', 'Poor']);
     }
 
     /**
