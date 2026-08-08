@@ -92,10 +92,16 @@
                 <div class="p-4 text-center text-muted">
                     <i class="fas fa-inbox mb-3" style="font-size: 2rem; opacity: 0.3;"></i>
                     <p>Aucune session planifiée pour ce semestre</p>
-                    <a href="{{ route('timetable.generate') }}" class="btn btn-sm btn-primary mt-3">
-                        <i class="fas fa-wand-magic-sparkles mr-2"></i>
-                        Générer l'emploi du temps
-                    </a>
+                    
+                    <form action="{{ route('timetable.generate') }}" method="POST" class="mt-3">
+                        @csrf
+                        <input type="hidden" name="semester_id" value="{{ $semester->id }}">
+                        <input type="hidden" name="name" value="Génération {{ now()->format('d/m/Y H:i') }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-wand-magic-sparkles mr-2"></i>
+                            Générer l'emploi du temps
+                        </button>
+                    </form>
                 </div>
             @endif
         </div>
