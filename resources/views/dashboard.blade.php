@@ -46,7 +46,7 @@
                         </h4>
                     </div>
 
-                    <form action="{{ route('schedules.generate') }}" method="post">
+                    <form action="{{ route('timetable.generate') }}" method="post">
                         @csrf
 
                         <div class="card-body">
@@ -120,9 +120,9 @@
                                     {{ ucfirst($schedule->status) }}
                                 </span>
                                 <a 
-                                    href="{{ route('schedules.show', $schedule) }}" 
+                                    href="{{ route('timetable.show', $schedule->semester_id) }}" 
                                     class="btn btn-sm btn-outline-primary ml-2"
-                                    title="Voir les détails"
+                                    title="Voir l'emploi du temps"
                                 >
                                     <i class="fas fa-eye"></i>
                                 </a>
@@ -152,11 +152,11 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="/schedules" class="text-decoration-none">
+                            <a href="{{ route('crud.index', 'semesters') }}" class="text-decoration-none">
                                 <div class="quick-action-card h-100">
                                     <i class="fas fa-calendar fa-2x text-primary mb-3"></i>
                                     <h6 class="font-weight-600">Emploi du temps</h6>
-                                    <p class="text-muted small">Voir les emplois</p>
+                                    <p class="text-muted small">Voir les semesters</p>
                                 </div>
                             </a>
                         </div>
