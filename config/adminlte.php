@@ -310,9 +310,9 @@ return [
         // Timetable Management
         ['header' => 'EMPLOI DU TEMPS'],
         [
-            'text' => 'Emploi du temps',
-            'icon' => 'fas fa-fw fa-calendar',
-            'active' => ['timetable*', 'schedules*'],
+            'text' => 'Emplois du temps',
+            'icon' => 'fas fa-fw fa-calendar-alt',
+            'active' => ['timetable*'],
             'submenu' => [
                 [
                     'text' => 'Sessions',
@@ -323,76 +323,33 @@ return [
                 [
                     'text' => 'Ajouter session',
                     'url' => 'timetable/sessions/create',
-                    'icon' => 'fas fa-plus',
+                    'icon' => 'fas fa-plus-circle',
                     'active' => ['timetable/sessions/create*'],
                 ],
                 [
-                    'text' => 'Qualité',
-                    'url' => 'timetable/1/quality',
-                    'icon' => 'fas fa-chart-bar',
-                    'active' => ['timetable*/quality*'],
-                ],
-            ],
-        ],
-
-        [
-            'text' => 'Génération',
-            'icon' => 'fas fa-fw fa-magic',
-            'active' => false,
-            'submenu' => [
-                [
-                    'text' => 'Générer',
-                    'url' => 'dashboard',
-                    'icon' => 'fas fa-wand-magic-sparkles',
-                ],
-                [
-                    'text' => 'Historique',
+                    'text' => 'Historique des générations',
                     'url' => 'dashboard',
                     'icon' => 'fas fa-history',
                 ],
             ],
         ],
 
-        // Administration
-        ['header' => 'ADMINISTRATION'],
+        // Reference data — managed via the generic CRUD
+        ['header' => 'DONNÉES DE RÉFÉRENCE'],
         [
-            'text' => 'Gestion',
-            'icon' => 'fas fa-fw fa-cog',
+            'text' => 'Configuration',
+            'icon' => 'fas fa-fw fa-cogs',
+            'active' => ['gestion*'],
             'submenu' => [
                 [
-                    'text' => 'Départements',
-                    'url' => 'gestion/departments',
-                    'icon' => 'fas fa-building',
+                    'text' => 'Années universitaires',
+                    'url' => 'gestion/annees',
+                    'icon' => 'fas fa-calendar-check',
                 ],
                 [
-                    'text' => 'Programmes',
-                    'url' => 'gestion/programs',
-                    'icon' => 'fas fa-graduation-cap',
-                ],
-                [
-                    'text' => 'Semestres',
-                    'url' => 'gestion/semesters',
-                    'icon' => 'fas fa-calendar-alt',
-                ],
-                [
-                    'text' => 'Modules',
-                    'url' => 'gestion/modules',
-                    'icon' => 'fas fa-book',
-                ],
-                [
-                    'text' => 'Groupes d\'étudiants',
-                    'url' => 'gestion/student_groups',
-                    'icon' => 'fas fa-users',
-                ],
-                [
-                    'text' => 'Professeurs',
-                    'url' => 'gestion/professeurs',
-                    'icon' => 'fas fa-chalkboard-user',
-                ],
-                [
-                    'text' => 'Salles',
-                    'url' => 'gestion/classrooms',
-                    'icon' => 'fas fa-door-open',
+                    'text' => 'Jours de la semaine',
+                    'url' => 'gestion/days',
+                    'icon' => 'fas fa-calendar-day',
                 ],
                 [
                     'text' => 'Créneaux horaires',
@@ -400,11 +357,60 @@ return [
                     'icon' => 'fas fa-clock',
                 ],
                 [
-                    'text' => 'Jours',
-                    'url' => 'gestion/days',
-                    'icon' => 'fas fa-calendar-day',
+                    'text' => 'Départements',
+                    'url' => 'gestion/departements',
+                    'icon' => 'fas fa-building',
+                ],
+                [
+                    'text' => 'Filières (programmes)',
+                    'url' => 'gestion/filieres',
+                    'icon' => 'fas fa-graduation-cap',
+                ],
+                [
+                    'text' => 'Semestres',
+                    'url' => 'gestion/semestres',
+                    'icon' => 'fas fa-layer-group',
+                ],
+                [
+                    'text' => 'Modules',
+                    'url' => 'gestion/modules',
+                    'icon' => 'fas fa-book-open',
+                ],
+                [
+                    'text' => 'Salles',
+                    'url' => 'gestion/salles',
+                    'icon' => 'fas fa-door-open',
+                ],
+                [
+                    'text' => 'Groupes d\'étudiants',
+                    'url' => 'gestion/sections',
+                    'icon' => 'fas fa-users',
+                ],
+                [
+                    'text' => 'Enseignants',
+                    'url' => 'gestion/teachers',
+                    'icon' => 'fas fa-chalkboard-teacher',
+                ],
+                [
+                    'text' => 'Étudiants',
+                    'url' => 'gestion/students',
+                    'icon' => 'fas fa-user-graduate',
+                ],
+                [
+                    'text' => 'Matières',
+                    'url' => 'gestion/subjects',
+                    'icon' => 'fas fa-book',
                 ],
             ],
+        ],
+
+        // Users & roles
+        ['header' => 'UTILISATEURS'],
+        [
+            'text' => 'Utilisateurs & professeurs',
+            'url' => 'gestion/professeurs',
+            'icon' => 'fas fa-fw fa-user-shield',
+            'active' => ['gestion/professeurs*'],
         ],
 
         // User Account
