@@ -82,21 +82,56 @@ class DashboardController extends Controller
     public function generate(Request $request, AutoGenerateTimetable $generator)
     {
         $data = $request->validate(['semester_id' => 'required|exists:semesters,id', 'name' => 'required|string|max:100']);
-        $report = $generator->generate((int) $data['semester_id']);
+        
+        $semesterId = (int) $data['semester_id'];
+        $semester = DB::table('semesters')->find($semesterId);
+        
+        // Validate required data exists
+        $subjects = DB::table('subjects')->where('semester_id', $semesterId)->count();
+        $sections = DB::table('sections')->where('program_id', $semester->program_id)->count();
+        $classrooms = DB::table('classrooms')->count();
+        $days = DB::table('days')->count();
+        $timeslots = DB::table('timeslots')->count();
+
+        $missing = [];
+        if ($subjects === 0) $missing[] = 'Subjects (courses to teach)';
+        if ($sections === 0) $missing[] = 'Sections (student groups)';
+        if ($classrooms === 0) $missing[] = 'Classrooms (rooms)';
+        if ($days === 0) $missing[] = 'Days (work days)';
+        if ($timeslots === 0) $missing[] = 'Timeslots (time periods)';
+
+        if (!empty($missing)) {
+            return redirect()->back()->withErrors([
+                'generation' => 'Cannot generate: Missing ' . implode(', ', $missing) . '. Create these in the admin panel first.'
+            ]);
+        }
+
+        // Run generation algorithm
+        $report = $generator->generate($semesterId);
+
+        // Handle error from algorithm
+        if (isset($report['error'])) {
+            return redirect()->back()->withErrors(['generation' => $report['error']]);
+        }
 
         // Record generation history
         ScheduleHistory::create([
-            'semester_id' => $data['semester_id'],
+            'semester_id' => $semesterId,
             'name' => $data['name'],
-            'status' => $report['success'] ? 'generated' : 'partial',
+            'status' => ($report['success'] ?? false) ? 'generated' : 'partial',
             'generated_sessions_count' => $report['sessions_generated'] ?? 0,
             'skipped_sessions_count' => $report['sessions_skipped'] ?? 0,
             'generated_by_user_id' => auth()->id(),
         ]);
 
-        return redirect()->route('timetable.show', $data['semester_id'])
-            ->with('generation', $report['success'] ? 'Emploi généré sans conflit.' : 'Génération partielle : certaines séances n\'ont pas pu être placées.')
-            ->with('unplaced', []);
+        $message = "✅ Generated " . ($report['sessions_generated'] ?? 0) . " sessions";
+        if (($report['sessions_skipped'] ?? 0) > 0) {
+            $message .= " (" . ($report['sessions_skipped'] ?? 0) . " skipped due to conflicts)";
+        }
+
+        return redirect()->route('timetable.show', $semesterId)
+            ->with('success', $message)
+            ->with('generation_report', $report);
     }
 
     public function show(Request $request, Semester $semester)
