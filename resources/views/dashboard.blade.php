@@ -139,6 +139,65 @@
         </div>
     </div>
 
+    <!-- Setup Wizard Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-0">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-route text-primary mr-2"></i>
+                        Configuration guidée
+                        @if ($wizard['ready'])
+                            <span class="badge badge-success ml-2"><i class="fas fa-check"></i> Données prêtes</span>
+                        @elseif ($wizard['next'])
+                            <span class="badge badge-warning ml-2">Étape suivante : {{ $wizard['next']['label'] }}</span>
+                        @endif
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Créez vos données dans l’ordre logique : chaque étape dépend de la précédente.
+                        Si une étape est bloquée, complétez d’abord celle qui précède.
+                    </p>
+                    <div class="row">
+                        @foreach ($wizard['steps'] as $index => $step)
+                        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                            <div class="card h-100 border {{ $step['done'] ? 'border-success' : ($wizard['next'] && $wizard['next']['key'] === $step['key'] ? 'border-warning' : 'border-light') }}">
+                                <div class="card-body p-3 text-center">
+                                    <span class="badge {{ $step['done'] ? 'badge-success' : 'badge-secondary' }} mb-2">
+                                        {{ $step['done'] ? '✔' : ($index + 1) }}
+                                    </span>
+                                    <h6 class="mb-1" style="font-size:.9rem">{{ $step['label'] }}</h6>
+                                    <p class="text-muted small mb-2" style="font-size:.75rem">{{ $step['desc'] }}</p>
+                                    @if ($wizard['next'] && $wizard['next']['key'] === $step['key'])
+                                        <a href="{{ route('crud.create', $step['resource']) }}" class="btn btn-xs btn-warning btn-sm w-100">
+                                            <i class="fas fa-plus"></i> Commencer
+                                        </a>
+                                    @elseif ($step['done'])
+                                        <a href="{{ route('crud.index', $step['resource']) }}" class="btn btn-xs btn-outline-success btn-sm w-100">
+                                            <i class="fas fa-list"></i> Voir ({{ $step['count'] }})
+                                        </a>
+                                    @else
+                                        <button class="btn btn-xs btn-outline-secondary btn-sm w-100" disabled title="Complétez l’étape précédente d’abord">
+                                            <i class="fas fa-lock"></i> Bloqué
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @if ($wizard['ready'])
+                    <div class="alert alert-success mb-0 mt-2">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Toutes les données de référence sont en place. Vous pouvez maintenant créer les <strong>matières</strong> puis <strong>générer votre premier emploi du temps</strong> depuis le formulaire ci-dessus.
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Actions Section -->
     <div class="row mt-4">
         <div class="col-md-12">
@@ -199,6 +258,5 @@
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
         @csrf
     </form>
-<div class="row">@foreach($counts as $label=>$value)<div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3>{{ $value }}</h3><p>{{ ucfirst($label) }}</p></div><div class="icon"><i class="fas fa-university"></i></div></div></div>@endforeach</div>
-<div class="row">@if(in_array(auth()->user()->role, ['super_admin','sous_admin','chef_departement','chef_filiere']))<div class="col-md-6"><div class="card card-primary"><div class="card-header"><h3 class="card-title">Générer un emploi du temps</h3></div><form action="{{ route('timetable.generate') }}" method="post">@csrf<div class="card-body"><div class="form-group"><label>Semestre</label><select name="semester_id" class="form-control" required><option value="">Sélectionner</option>@foreach($semesters as $semester)<option value="{{ $semester->id }}">{{ $semester->program }} — {{ $semester->name }}</option>@endforeach</select></div><div class="form-group"><label>Nom de la version</label><input class="form-control" name="name" value="Proposition {{ now()->format('d/m/Y H:i') }}" required></div><p class="text-muted mb-0">Capacités, types de salles, indisponibilités et conflits sont contrôlés.</p></div><div class="card-footer"><button class="btn btn-primary"><i class="fas fa-magic"></i> Générer</button></div></form></div></div>@endif<div class="col-md-6"><div class="card"><div class="card-header"><h3 class="card-title">Derniers semestres</h3></div><div class="card-body p-0"><table class="table"><thead><tr><th>Nom</th><th>Sessions</th><th></th></tr></thead><tbody>@forelse($recentSemesters as $semester)<tr><td>{{ $semester->name }}</td><td>{{ $semester->timetable_sessions_count }}</td><td><a href="{{ route('timetable.show',$semester) }}" class="btn btn-sm btn-outline-primary">Voir</a></td></tr>@empty<tr><td colspan="3" class="text-center text-muted">Aucun semestre.</td></tr>@endforelse</tbody></table></div></div></div></div>
+
 @endsection

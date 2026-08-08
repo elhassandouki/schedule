@@ -22,7 +22,61 @@ class DashboardController extends Controller
             ],
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
             'semesters' => DB::table('semesters')->join('programs', 'programs.id', '=', 'semesters.program_id')->select('semesters.*', 'programs.name as program')->get(),
+            'reference' => [
+                'years' => DB::table('academic_years')->count(),
+                'departments' => DB::table('departments')->count(),
+                'programs' => DB::table('programs')->count(),
+                'semesters' => DB::table('semesters')->count(),
+                'classrooms' => DB::table('classrooms')->count(),
+                'sections' => DB::table('sections')->count(),
+                'teachers' => DB::table('teachers')->count(),
+                'subjects' => DB::table('subjects')->count(),
+                'timeslots' => DB::table('timeslots')->count(),
+                'days' => DB::table('days')->count(),
+            ],
+            'wizard' => $this->wizardData(),
         ]);
+    }
+
+    /**
+     * Guided setup steps following the logical dependency order of the
+     * reference data (days & slots first, then years, departments,
+     * programs, semesters, and finally classrooms, teachers, groups, subjects).
+     */
+    private function wizardData(): array
+    {
+        $steps = [
+            ['key' => 'days', 'label' => 'Jours de la semaine', 'resource' => 'days', 'table' => 'days', 'desc' => 'Ex : Lundi, Mardi, ...'],
+            ['key' => 'timeslots', 'label' => 'Créneaux horaires', 'resource' => 'timeslots', 'table' => 'timeslots', 'desc' => 'Ex : 08:00-10:00'],
+            ['key' => 'years', 'label' => 'Année universitaire', 'resource' => 'annees', 'table' => 'academic_years', 'desc' => 'Ex : 2026/2027'],
+            ['key' => 'departments', 'label' => 'Départements', 'resource' => 'departements', 'table' => 'departments', 'desc' => 'Ex : Département Informatique'],
+            ['key' => 'programs', 'label' => 'Filières', 'resource' => 'filieres', 'table' => 'programs', 'desc' => 'Rattachées à un département'],
+            ['key' => 'semesters', 'label' => 'Semestres', 'resource' => 'semestres', 'table' => 'semesters', 'desc' => 'Rattachés à une filière et une année'],
+            ['key' => 'classrooms', 'label' => 'Salles', 'resource' => 'salles', 'table' => 'classrooms', 'desc' => 'Avec capacité et type (cours/TD/TP)'],
+            ['key' => 'teachers', 'label' => 'Enseignants', 'resource' => 'teachers', 'table' => 'teachers', 'desc' => 'Corps enseignant'],
+            ['key' => 'sections', 'label' => 'Groupes', 'resource' => 'sections', 'table' => 'sections', 'desc' => 'Groupes d’étudiants par filière'],
+            ['key' => 'subjects', 'label' => 'Matières', 'resource' => 'subjects', 'table' => 'subjects', 'desc' => 'Rattachées à un semestre, enseignant et groupe'],
+        ];
+
+        foreach ($steps as &$step) {
+            $step['count'] = (int) DB::table($step['table'])->count();
+            $step['done'] = $step['count'] > 0;
+        }
+        unset($step);
+
+        $next = null;
+        foreach ($steps as $step) {
+            if (!$step['done']) {
+                $next = $step;
+                break;
+            }
+        }
+
+        return [
+            'steps' => $steps,
+            'next' => $next,
+            'ready' => collect($steps)->every(fn ($s) => $s['done']),
+        ];
     }
 
     public function generate(Request $request, AutoGenerateTimetable $generator)

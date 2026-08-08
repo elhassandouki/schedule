@@ -9,12 +9,13 @@ class UnifiedDemoSeeder extends Seeder
 {
     public function run(): void
     {
+
         $now = now();
 
         // ════════════════════════════════════════════════════════════
         // 1. USERS (Login Accounts)
         // ════════════════════════════════════════════════════════════
-        $admin = DB::table('users')->insertGetId([
+        $admin = $this->insertOnce('users', ['email' => 'admin@school.local'], [
             'name' => 'Admin Master',
             'email' => 'admin@school.local',
             'role' => 'super_admin',
@@ -25,7 +26,7 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
-        $prof1_user = DB::table('users')->insertGetId([
+        $prof1_user = $this->insertOnce('users', ['email' => 'alice@school.local'], [
             'name' => 'Dr. Alice Martin',
             'email' => 'alice@school.local',
             'role' => 'prof',
@@ -36,7 +37,7 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
-        $prof2_user = DB::table('users')->insertGetId([
+        $prof2_user = $this->insertOnce('users', ['email' => 'bob@school.local'], [
             'name' => 'Prof. Bob Chen',
             'email' => 'bob@school.local',
             'role' => 'prof',
@@ -47,7 +48,7 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
-        $prof3_user = DB::table('users')->insertGetId([
+        $prof3_user = $this->insertOnce('users', ['email' => 'carol@school.local'], [
             'name' => 'Prof. Carol White',
             'email' => 'carol@school.local',
             'role' => 'prof',
@@ -58,7 +59,7 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
-        $chef_user = DB::table('users')->insertGetId([
+        $chef_user = $this->insertOnce('users', ['email' => 'chef@school.local'], [
             'name' => 'Chef Département',
             'email' => 'chef@school.local',
             'role' => 'chef_departement',
@@ -72,14 +73,14 @@ class UnifiedDemoSeeder extends Seeder
         // ════════════════════════════════════════════════════════════
         // 2. DEPARTMENTS
         // ════════════════════════════════════════════════════════════
-        $dept1 = DB::table('departments')->insertGetId([
+        $dept1 = $this->insertOnce('departments', ['name' => 'Informatique'], [
             'name' => 'Informatique',
             'code' => 'INF',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
-        $dept2 = DB::table('departments')->insertGetId([
+        $dept2 = $this->insertOnce('departments', ['name' => 'Mathématiques'], [
             'name' => 'Mathématiques',
             'code' => 'MATH',
             'created_at' => $now,
@@ -89,7 +90,7 @@ class UnifiedDemoSeeder extends Seeder
         // ════════════════════════════════════════════════════════════
         // 3. PROGRAMS (Filières)
         // ════════════════════════════════════════════════════════════
-        $prog1 = DB::table('programs')->insertGetId([
+        $prog1 = $this->insertOnce('programs', ['code' => 'LIC-INF'], [
             'department_id' => $dept1,
             'name' => 'Licence Informatique',
             'code' => 'LIC-INF',
@@ -97,7 +98,7 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
-        $prog2 = DB::table('programs')->insertGetId([
+        $prog2 = $this->insertOnce('programs', ['code' => 'MASTER-IA'], [
             'department_id' => $dept1,
             'name' => 'Master IA',
             'code' => 'MASTER-IA',
@@ -108,7 +109,7 @@ class UnifiedDemoSeeder extends Seeder
         // ════════════════════════════════════════════════════════════
         // 3b. ACADEMIC YEAR (required by semesters.academic_year_id NOT NULL)
         // ════════════════════════════════════════════════════════════
-        $academicYearId = DB::table('academic_years')->insertGetId([
+        $academicYearId = $this->insertOnce('academic_years', ['name' => '2026/2027'], [
             'name' => '2026/2027',
             'starts_on' => '2026-09-01',
             'ends_on' => '2027-06-30',
@@ -453,5 +454,13 @@ class UnifiedDemoSeeder extends Seeder
         $this->command->line('  bob@school.local (prof, Prof. Bob Chen)');
         $this->command->line('  carol@school.local (prof, Prof. Carol White)');
         $this->command->line('  chef@school.local (chef_departement)');
+    }
+    private function insertOnce(string $table, array $unique, array $data): int
+    {
+        $existing = DB::table($table)->where($unique)->value('id');
+        if ($existing) {
+            return (int) $existing;
+        }
+        return (int) DB::table($table)->insertGetId(array_merge($unique, $data));
     }
 }
