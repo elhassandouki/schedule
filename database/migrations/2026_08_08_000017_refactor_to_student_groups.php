@@ -11,25 +11,35 @@ return new class extends Migration {
         // 1. Remove old section_id constraint from timetable_sessions
         Schema::table('timetable_sessions', function (Blueprint $table) {
             // Drop the foreign key constraint by name
-            if ($this->constraintExists('timetable_sessions', 'timetable_sessions_section_id_foreign')) {
+            try {
                 DB::statement('ALTER TABLE timetable_sessions DROP FOREIGN KEY timetable_sessions_section_id_foreign');
+            } catch (\Exception $e) {
+                // Constraint doesn't exist, that's fine
             }
-            $table->dropColumnIfExists('section_id');
+            
+            // Drop section_id column if it exists
+            if (Schema::hasColumn('timetable_sessions', 'section_id')) {
+                $table->dropColumn('section_id');
+            }
         });
 
         // 2. Add student_group_id to timetable_sessions
-        Schema::table('timetable_sessions', function (Blueprint $table) {
-            $table->foreignId('student_group_id')
-                ->after('semester_id')
-                ->constrained('student_groups')
-                ->cascadeOnDelete();
-        });
+        if (!Schema::hasColumn('timetable_sessions', 'student_group_id')) {
+            Schema::table('timetable_sessions', function (Blueprint $table) {
+                $table->foreignId('student_group_id')
+                    ->after('semester_id')
+                    ->constrained('student_groups')
+                    ->cascadeOnDelete();
+            });
+        }
 
         // 3. Update subject table to NOT be tied to semester
         if (Schema::hasColumn('subjects', 'semester_id')) {
             Schema::table('subjects', function (Blueprint $table) {
-                if ($this->constraintExists('subjects', 'subjects_semester_id_foreign')) {
+                try {
                     DB::statement('ALTER TABLE subjects DROP FOREIGN KEY subjects_semester_id_foreign');
+                } catch (\Exception $e) {
+                    // Constraint doesn't exist, that's fine
                 }
                 $table->dropColumn('semester_id');
             });
@@ -47,55 +57,61 @@ return new class extends Migration {
         // 5. Update unique constraint on timetable_sessions
         Schema::table('timetable_sessions', function (Blueprint $table) {
             // Drop old constraint if it exists
-            if ($this->uniqueExists('timetable_sessions', 'timetable_sessions_section_id_semester_id_day_id_timeslot_id_unique')) {
-                $table->dropUnique('timetable_sessions_section_id_semester_id_day_id_timeslot_id_unique');
+            try {
+                DB::statement('ALTER TABLE timetable_sessions DROP INDEX timetable_sessions_section_id_semester_id_day_id_timeslot_id_unique');
+            } catch (\Exception $e) {
+                // Constraint doesn't exist, that's fine
             }
             
             // Add new constraint using student_group_id
-            $table->unique(['student_group_id', 'semester_id', 'day_id', 'timeslot_id']);
+            if (!$this->uniqueExists('timetable_sessions', 'timetable_sessions_student_group_id_semester_id_day_id_timeslot_id_unique')) {
+                $table->unique(['student_group_id', 'semester_id', 'day_id', 'timeslot_id']);
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('timetable_sessions', function (Blueprint $table) {
-            if ($this->constraintExists('timetable_sessions', 'timetable_sessions_student_group_id_foreign')) {
+            try {
                 DB::statement('ALTER TABLE timetable_sessions DROP FOREIGN KEY timetable_sessions_student_group_id_foreign');
+            } catch (\Exception $e) {
+                // Constraint doesn't exist
             }
-            $table->dropColumnIfExists('student_group_id');
             
-            $table->foreignId('section_id')
-                ->constrained('sections')
-                ->cascadeOnDelete();
-        });
-
-        Schema::table('subjects', function (Blueprint $table) {
-            $table->foreignId('semester_id')
-                ->after('id')
-                ->constrained()
-                ->cascadeOnDelete();
-        });
-
-        Schema::table('student_groups', function (Blueprint $table) {
-            if (Schema::hasColumn('student_groups', 'semester_id')) {
-                if ($this->constraintExists('student_groups', 'student_groups_semester_id_foreign')) {
-                    DB::statement('ALTER TABLE student_groups DROP FOREIGN KEY student_groups_semester_id_foreign');
-                }
-                $table->dropColumn('semester_id');
+            if (Schema::hasColumn('timetable_sessions', 'student_group_id')) {
+                $table->dropColumn('student_group_id');
+            }
+            
+            if (!Schema::hasColumn('timetable_sessions', 'section_id')) {
+                $table->foreignId('section_id')
+                    ->constrained('sections')
+                    ->cascadeOnDelete();
             }
         });
-    }
 
-    private function constraintExists($table, $constraint): bool
-    {
-        try {
-            $result = DB::select(
-                'SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
-                [$table, $constraint]
-            );
-            return !empty($result);
-        } catch (\Exception $e) {
-            return false;
+        if (Schema::hasTable('subjects')) {
+            Schema::table('subjects', function (Blueprint $table) {
+                if (!Schema::hasColumn('subjects', 'semester_id')) {
+                    $table->foreignId('semester_id')
+                        ->after('id')
+                        ->constrained()
+                        ->cascadeOnDelete();
+                }
+            });
+        }
+
+        if (Schema::hasTable('student_groups')) {
+            Schema::table('student_groups', function (Blueprint $table) {
+                if (Schema::hasColumn('student_groups', 'semester_id')) {
+                    try {
+                        DB::statement('ALTER TABLE student_groups DROP FOREIGN KEY student_groups_semester_id_foreign');
+                    } catch (\Exception $e) {
+                        // Constraint doesn't exist
+                    }
+                    $table->dropColumn('semester_id');
+                }
+            });
         }
     }
 
