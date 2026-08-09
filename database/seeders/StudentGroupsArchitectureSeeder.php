@@ -118,6 +118,7 @@ class StudentGroupsArchitectureSeeder extends Seeder
         // ════════════════════════════════════════════════════════════
         $dept1 = DB::table('departments')->insertGetId([
             'name' => 'Département Informatique',
+            'code' => 'DEPT-INFO',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -125,7 +126,7 @@ class StudentGroupsArchitectureSeeder extends Seeder
         $prog1 = DB::table('programs')->insertGetId([
             'department_id' => $dept1,
             'name' => 'Licence Informatique',
-            'code' => 'LIC-INFO',
+            'code' => 'LIC-INFO-001',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
