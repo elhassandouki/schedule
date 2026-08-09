@@ -63,9 +63,9 @@ return new class extends Migration {
                 // Constraint doesn't exist, that's fine
             }
             
-            // Add new constraint using student_group_id
-            if (!$this->uniqueExists('timetable_sessions', 'timetable_sessions_student_group_id_semester_id_day_id_timeslot_id_unique')) {
-                $table->unique(['student_group_id', 'semester_id', 'day_id', 'timeslot_id']);
+            // Add new constraint using student_group_id (with shorter name)
+            if (!$this->uniqueExists('timetable_sessions', 'ts_sg_sem_day_slot_unique')) {
+                $table->unique(['student_group_id', 'semester_id', 'day_id', 'timeslot_id'], 'ts_sg_sem_day_slot_unique');
             }
         });
     }
