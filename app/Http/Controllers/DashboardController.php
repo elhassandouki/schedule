@@ -87,15 +87,15 @@ class DashboardController extends Controller
         $semester = DB::table('semesters')->find($semesterId);
         
         // Validate required data exists
-        $subjects = DB::table('subjects')->where('semester_id', $semesterId)->count();
-        $sections = DB::table('sections')->where('program_id', $semester->program_id)->count();
+        $subjects = DB::table('subjects')->count(); // ALL subjects, independent of semester
+        $studentGroups = DB::table('student_groups')->where('semester_id', $semesterId)->count();
         $classrooms = DB::table('classrooms')->count();
         $days = DB::table('days')->count();
         $timeslots = DB::table('timeslots')->count();
 
         $missing = [];
         if ($subjects === 0) $missing[] = 'Subjects (courses to teach)';
-        if ($sections === 0) $missing[] = 'Sections (student groups)';
+        if ($studentGroups === 0) $missing[] = 'Student Groups (for this semester)';
         if ($classrooms === 0) $missing[] = 'Classrooms (rooms)';
         if ($days === 0) $missing[] = 'Days (work days)';
         if ($timeslots === 0) $missing[] = 'Timeslots (time periods)';
@@ -177,7 +177,7 @@ class DashboardController extends Controller
         $semesterId = $semester->id;
         $query = DB::table('timetable_sessions as ts')
             ->join('subjects as s', 's.id', '=', 'ts.subject_id')
-            ->join('sections as sec', 'sec.id', '=', 'ts.section_id')
+            ->join('student_groups as sg', 'sg.id', '=', 'ts.student_group_id')
             ->join('teachers as teach', 'teach.id', '=', 'ts.teacher_id')
             ->join('classrooms as c', 'c.id', '=', 'ts.classroom_id')
             ->join('days as d', 'd.id', '=', 'ts.day_id')
@@ -197,7 +197,7 @@ class DashboardController extends Controller
                 'ts.day_id',
                 'ts.timeslot_id',
                 's.name as module',
-                'sec.name as groupe',
+                'sg.name as groupe',
                 'teach.name as professeur',
                 'c.name as salle',
                 'd.name as day_name',
