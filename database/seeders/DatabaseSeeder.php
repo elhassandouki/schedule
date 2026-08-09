@@ -14,10 +14,10 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     * New architecture: Subjects (independent) + Student Groups (semester-based)
      */
     public function run(): void
     {
-        // Unified system: seed demo data structure, ready for auto-generation
-        $this->call(UnifiedDemoSeeder::class);
+        $this->call(StudentGroupsArchitectureSeeder::class);
     }
 }
