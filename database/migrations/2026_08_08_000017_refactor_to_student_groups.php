@@ -3,15 +3,18 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void
     {
         // 1. Remove old section_id constraint from timetable_sessions
         Schema::table('timetable_sessions', function (Blueprint $table) {
-            // Drop the old section constraint
-            $table->dropForeignIdFor('Section');
-            $table->dropColumn('section_id');
+            // Drop the foreign key constraint by name
+            if ($this->constraintExists('timetable_sessions', 'timetable_sessions_section_id_foreign')) {
+                DB::statement('ALTER TABLE timetable_sessions DROP FOREIGN KEY timetable_sessions_section_id_foreign');
+            }
+            $table->dropColumnIfExists('section_id');
         });
 
         // 2. Add student_group_id to timetable_sessions
@@ -23,10 +26,11 @@ return new class extends Migration {
         });
 
         // 3. Update subject table to NOT be tied to semester
-        // (if it has semester_id, remove it)
         if (Schema::hasColumn('subjects', 'semester_id')) {
             Schema::table('subjects', function (Blueprint $table) {
-                $table->dropForeignIdFor('Semester');
+                if ($this->constraintExists('subjects', 'subjects_semester_id_foreign')) {
+                    DB::statement('ALTER TABLE subjects DROP FOREIGN KEY subjects_semester_id_foreign');
+                }
                 $table->dropColumn('semester_id');
             });
         }
@@ -41,13 +45,10 @@ return new class extends Migration {
         }
 
         // 5. Update unique constraint on timetable_sessions
-        // Remove old section-based constraint, add student_group-based
         Schema::table('timetable_sessions', function (Blueprint $table) {
             // Drop old constraint if it exists
-            try {
-                $table->dropUnique(['section_id', 'semester_id', 'day_id', 'timeslot_id']);
-            } catch (\Exception $e) {
-                // Constraint doesn't exist, that's fine
+            if ($this->uniqueExists('timetable_sessions', 'timetable_sessions_section_id_semester_id_day_id_timeslot_id_unique')) {
+                $table->dropUnique('timetable_sessions_section_id_semester_id_day_id_timeslot_id_unique');
             }
             
             // Add new constraint using student_group_id
@@ -58,8 +59,10 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('timetable_sessions', function (Blueprint $table) {
-            $table->dropForeignIdFor('StudentGroup');
-            $table->dropColumn('student_group_id');
+            if ($this->constraintExists('timetable_sessions', 'timetable_sessions_student_group_id_foreign')) {
+                DB::statement('ALTER TABLE timetable_sessions DROP FOREIGN KEY timetable_sessions_student_group_id_foreign');
+            }
+            $table->dropColumnIfExists('student_group_id');
             
             $table->foreignId('section_id')
                 ->constrained('sections')
@@ -75,9 +78,37 @@ return new class extends Migration {
 
         Schema::table('student_groups', function (Blueprint $table) {
             if (Schema::hasColumn('student_groups', 'semester_id')) {
-                $table->dropForeignIdFor('Semester');
+                if ($this->constraintExists('student_groups', 'student_groups_semester_id_foreign')) {
+                    DB::statement('ALTER TABLE student_groups DROP FOREIGN KEY student_groups_semester_id_foreign');
+                }
                 $table->dropColumn('semester_id');
             }
         });
+    }
+
+    private function constraintExists($table, $constraint): bool
+    {
+        try {
+            $result = DB::select(
+                'SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
+                [$table, $constraint]
+            );
+            return !empty($result);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function uniqueExists($table, $constraint): bool
+    {
+        try {
+            $result = DB::select(
+                'SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
+                [$table, $constraint]
+            );
+            return !empty($result);
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 };
