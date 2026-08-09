@@ -114,24 +114,34 @@ class DashboardController extends Controller
             return redirect()->back()->withErrors(['generation' => $report['error']]);
         }
 
-        // Record generation history
-        ScheduleHistory::create([
-            'semester_id' => $semesterId,
-            'name' => $data['name'],
-            'status' => ($report['success'] ?? false) ? 'generated' : 'partial',
-            'generated_sessions_count' => $report['sessions_generated'] ?? 0,
-            'skipped_sessions_count' => $report['sessions_skipped'] ?? 0,
-            'generated_by_user_id' => auth()->id(),
-        ]);
-
-        $message = "✅ Generated " . ($report['sessions_generated'] ?? 0) . " sessions";
-        if (($report['sessions_skipped'] ?? 0) > 0) {
-            $message .= " (" . ($report['sessions_skipped'] ?? 0) . " skipped due to conflicts)";
+        // Record generation history only when the generator actually ran.
+        // A hard error (missing subjects, groups, days, ...) must never be
+        // recorded as a 'partial' history with zero sessions.
+        if (array_key_exists('sessions_generated', $report)) {
+            ScheduleHistory::create([
+                'semester_id' => $semesterId,
+                'name' => $data['name'],
+                'status' => $report['success'] ? 'generated' : 'partial',
+                'generated_sessions_count' => $report['sessions_generated'] ?? 0,
+                'skipped_sessions_count' => $report['sessions_skipped'] ?? 0,
+                'generated_by_user_id' => auth()->id(),
+            ]);
         }
+
+        $message = "Emploi généré : " . ($report['sessions_generated'] ?? 0) . " séance(s) placée(s)";
+        if (($report['sessions_skipped'] ?? 0) > 0) {
+            $message .= " (" . ($report['sessions_skipped'] ?? 0) . " non placée(s) à cause de conflits)";
+        }
+
+        $unplaced = collect($report['skipped_per_subject'] ?? [])
+            ->filter(fn (array $s) => !empty($s))
+            ->all();
 
         return redirect()->route('timetable.show', $semesterId)
             ->with('success', $message)
-            ->with('generation_report', $report);
+            ->with('generation_report', $report)
+            ->with('unplaced', $unplaced);
+
     }
 
     public function show(Request $request, Semester $semester)

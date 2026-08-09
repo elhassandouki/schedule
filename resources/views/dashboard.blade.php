@@ -80,6 +80,13 @@
                                 @enderror
                             </div>
 
+                            @if ($errors->has('generation'))
+                                <div class="alert alert-danger mb-0 mt-3">
+                                    <i class="fas fa-exclamation-circle mr-2"></i>
+                                    {{ $errors->first('generation') }}
+                                </div>
+                            @endif
+
                             <p class="text-muted small mb-0">
                                 <i class="fas fa-info-circle"></i>
                                 Capacités, types de salles, indisponibilités et conflits sont contrôlés automatiquement.

@@ -107,6 +107,48 @@
         </div>
     </div>
 
+    <!-- Unplaced sessions: explains why some sessions could not be scheduled -->
+    @if (session('unplaced') && count(session('unplaced')) > 0)
+        <div class="card border-warning shadow-sm mt-4">
+            <div class="card-header bg-warning bg-opacity-25 border-warning">
+                <h4 class="card-title mb-0 text-dark">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Séances non placées ({{ array_sum(array_column(session('unplaced'), 'skipped')) }})
+                </h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Matière</th>
+                                <th>Placées</th>
+                                <th>Non placées</th>
+                                <th>Motifs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (session('unplaced') as $subject)
+                                <tr>
+                                    <td class="font-weight-600">{{ $subject['subject_name'] }}</td>
+                                    <td><span class="badge badge-success">{{ $subject['generated'] }}</span></td>
+                                    <td><span class="badge badge-danger">{{ $subject['skipped'] }}</span></td>
+                                    <td>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach ($subject['errors'] as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Quick Links -->
     <div class="row mt-4">
         <div class="col-md-6">

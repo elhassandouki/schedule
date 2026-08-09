@@ -6,11 +6,14 @@ use App\Http\Controllers\CrudController;
 use App\Http\Controllers\TimetableSessionController;
 use App\Http\Controllers\TimetableQualityController;
 use App\Http\Controllers\ProfessorController;
+use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
 Route::get('/login', [AuthController::class, 'create'])->name('login');
 Route::post('/login', [AuthController::class, 'store'])->name('login.store');
+Route::get('/register', [RegisterController::class, 'create'])->name('register');
+Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->group(function () {
