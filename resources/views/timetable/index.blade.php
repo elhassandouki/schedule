@@ -37,10 +37,10 @@
             </div>
 
             <div class="col-md-2 mb-2">
-                <select name="section_id" class="form-control" onchange="this.form.submit()">
+                <select name="student_group_id" class="form-control" onchange="this.form.submit()">
                     <option value="">Tous les groupes</option>
-                    @foreach ($sections as $item)
-                        <option value="{{ $item->id }}" @selected(request('section_id') == $item->id)>
+                    @foreach ($studentGroups as $item)
+                        <option value="{{ $item->id }}" @selected(request('student_group_id') == $item->id)>
                             {{ $item->name }}
                         </option>
                     @endforeach
@@ -128,7 +128,7 @@
                                                 </small>
                                                 <small class="text-muted d-block mb-2">
                                                     <i class="fas fa-users"></i>
-                                                    {{ $session->section->name }}
+                                                    {{ $session->studentGroup->name }}
                                                 </small>
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     <a href="{{ route('timetable.edit', $session) }}" 
@@ -198,7 +198,7 @@
                 <span class="info-box-icon bg-warning"><i class="fas fa-door-open"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">Salles</span>
-                    <span class="info-box-number">{{ $sections->count() }}</span>
+                    <span class="info-box-number">{{ $classrooms->count() }}</span>
                 </div>
             </div>
         </div>
@@ -208,7 +208,7 @@
                 <span class="info-box-icon bg-primary"><i class="fas fa-users"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">Groupes</span>
-                    <span class="info-box-number">{{ $sections->count() }}</span>
+                    <span class="info-box-number">{{ $studentGroups->count() }}</span>
                 </div>
             </div>
         </div>

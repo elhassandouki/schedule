@@ -6,7 +6,7 @@ use App\Models\Classroom;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\SchoolDay;
-use App\Models\Section;
+use App\Models\StudentGroup;
 use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\Teacher;
@@ -48,8 +48,8 @@ class LegacyScheduleGeneratorTest extends TestCase
         ]);
 
         $teacher = Teacher::create(['name' => 'Prof Test', 'user_id' => $professor->id]);
-        Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001', 'sessions_per_week' => 1]);
-        Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001', 'sessions_per_week' => 1]);
+        StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         Classroom::create(['name' => 'A101', 'capacity' => 50, 'type' => 'classroom']);
         SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);

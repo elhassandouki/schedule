@@ -6,7 +6,7 @@ use App\Models\Classroom;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\SchoolDay;
-use App\Models\Section;
+use App\Models\StudentGroup;
 use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\Teacher;
@@ -42,13 +42,13 @@ class TimetableAuthorizationTest extends TestCase
             'number' => 1,
         ]);
         $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
-        $section = Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
-        return compact('semester', 'teacher', 'subject', 'section', 'classroom', 'day', 'timeslot', 'department', 'program');
+        return compact('semester', 'teacher', 'subject', 'group', 'classroom', 'day', 'timeslot', 'department', 'program');
     }
 
     public function test_admin_can_view_and_manage_timetable_sessions(): void
@@ -67,7 +67,7 @@ class TimetableAuthorizationTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -102,7 +102,7 @@ class TimetableAuthorizationTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $teacher->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -121,7 +121,7 @@ class TimetableAuthorizationTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $otherTeacher->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,

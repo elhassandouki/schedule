@@ -60,11 +60,11 @@ class TimetableQualityController extends Controller
                 ->values()
                 ->toArray();
             
-            // Filter sections: only show sections where prof teaches
-            $quality['workload']['sections'] = collect($quality['workload']['sections'])
+            // Filter student groups: only show groups where prof teaches
+            $quality['workload']['student_groups'] = collect($quality['workload']['student_groups'] ?? [])
                 ->filter(function ($s) use ($semesterId, $teacherId) {
                     return DB::table('timetable_sessions')
-                        ->where('section_id', $s['section_id'])
+                        ->where('student_group_id', $s['student_group_id'])
                         ->where('semester_id', $semesterId)
                         ->where('teacher_id', $teacherId)
                         ->exists();

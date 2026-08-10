@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * One-time bridge migration from the legacy minute-based system
  * (TeachingSession -> Schedule -> TimetableEntry) to the unified
- * day/timeslot system (Subject/Section/Teacher -> TimetableSession).
+ * day/timeslot system (Subject/StudentGroup/Teacher -> TimetableSession).
  *
  * Safe by design:
  *  - Runs inside a DB transaction.
@@ -57,13 +57,13 @@ class MigrateLegacyTimetable extends Command
 
         $created = 0;
         $skipped = [];
-        $teacherCache = [];   // user_id => teacher_id
-        $sectionCache = [];   // program_id|group_name => section_id
-        $subjectCache = [];   // semester_id|module_code => subject_id
+        $teacherCache = [];     // user_id => teacher_id
+        $groupCache = [];       // semester_id|group_name => student_group_id
+        $subjectCache = [];     // module_code => subject_id
 
         DB::transaction(function () use (
             $entries, $days, $timeslots, $commit, &$created, &$skipped,
-            &$teacherCache, &$sectionCache, &$subjectCache
+            &$teacherCache, &$groupCache, &$subjectCache
         ) {
             foreach ($entries as $row) {
                 // 1) Day: legacy day_of_week (1=Lundi..5=Vendredi) matches days.position exactly.
@@ -106,23 +106,32 @@ class MigrateLegacyTimetable extends Command
                 }
                 $teacherId = $teacherCache[$teacherKey];
 
-                // 4) Section: match by (program_id, name) derived from the semester's program.
-                $sectionKey = $row->program_id . '|' . $row->group_name;
-                if (!isset($sectionCache[$sectionKey])) {
-                    $section = DB::table('sections')->where('program_id', $row->program_id)->where('name', $row->group_name)->first();
-                    $sectionCache[$sectionKey] = $section?->id ?? ($commit ? DB::table('sections')->insertGetId([
-                        'program_id' => $row->program_id, 'name' => $row->group_name, 'capacity' => $row->student_count,
-                        'created_at' => now(), 'updated_at' => now(),
-                    ]) : -1);
+                // 4) Student group: reuse the legacy student_group directly if it
+                //    is already bound to the target semester; otherwise create a new
+                //    student_groups row tied to the semester.
+                $groupKey = $row->semester_id . '|' . $row->group_name;
+                if (!isset($groupCache[$groupKey])) {
+                    $group = DB::table('student_groups')->where('name', $row->group_name)->first();
+                    if ($group && (int) ($group->semester_id ?? 0) === (int) $row->semester_id) {
+                        $groupId = $group->id;
+                    } else {
+                        $groupId = $commit ? DB::table('student_groups')->insertGetId([
+                            'semester_id' => $row->semester_id,
+                            'name' => $row->group_name,
+                            'capacity' => $row->student_count,
+                            'created_at' => now(), 'updated_at' => now(),
+                        ]) : -1;
+                    }
+                    $groupCache[$groupKey] = $groupId;
                 }
-                $sectionId = $sectionCache[$sectionKey];
+                $groupId = $groupCache[$groupKey];
 
-                // 5) Subject: match by (semester_id, code) derived from the module.
-                $subjectKey = $row->semester_id . '|' . $row->module_code;
+                // 5) Subject: match by module code (subjects are no longer tied to a semester).
+                $subjectKey = $row->module_code;
                 if (!isset($subjectCache[$subjectKey])) {
-                    $subject = DB::table('subjects')->where('semester_id', $row->semester_id)->where('code', $row->module_code)->first();
+                    $subject = DB::table('subjects')->where('code', $row->module_code)->first();
                     $subjectCache[$subjectKey] = $subject?->id ?? ($commit ? DB::table('subjects')->insertGetId([
-                        'semester_id' => $row->semester_id, 'teacher_id' => $teacherId,
+                        'teacher_id' => $teacherId,
                         'name' => $row->module_name, 'code' => $row->module_code,
                         'sessions_per_week' => 1, 'created_at' => now(), 'updated_at' => now(),
                     ]) : -1);
@@ -131,7 +140,7 @@ class MigrateLegacyTimetable extends Command
 
                 // 6) Skip if this exact TimetableSession already exists (idempotent re-runs).
                 $exists = DB::table('timetable_sessions')
-                    ->where(['subject_id' => $subjectId, 'teacher_id' => $teacherId, 'section_id' => $sectionId,
+                    ->where(['subject_id' => $subjectId, 'teacher_id' => $teacherId, 'student_group_id' => $groupId,
                         'day_id' => $day->id, 'timeslot_id' => $timeslot->id])
                     ->exists();
 
@@ -143,7 +152,7 @@ class MigrateLegacyTimetable extends Command
                 if ($commit) {
                     DB::table('timetable_sessions')->insert([
                         'subject_id' => $subjectId, 'teacher_id' => $teacherId, 'classroom_id' => $row->classroom_id,
-                        'section_id' => $sectionId, 'semester_id' => $row->semester_id,
+                        'student_group_id' => $groupId, 'semester_id' => $row->semester_id,
                         'day_id' => $day->id, 'timeslot_id' => $timeslot->id,
                         'created_at' => now(), 'updated_at' => now(),
                     ]);

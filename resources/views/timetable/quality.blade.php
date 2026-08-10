@@ -122,7 +122,7 @@
                             <thead>
                                 <tr>
                                     <th>Subject</th>
-                                    <th>Section</th>
+                                    <th>Groupe</th>
                                     <th>Reason</th>
                                 </tr>
                             </thead>
@@ -130,7 +130,7 @@
                                 @forelse (DB::table('timetable_generation_skips')->where('semester_id', $semester->id)->get() as $skip)
                                 <tr>
                                     <td>{{ $skip->subject_name }}</td>
-                                    <td>{{ $skip->section_name }}</td>
+                                    <td>{{ $skip->group_name ?? $skip->section_name }}</td>
                                     <td><small>{{ $skip->reason }}</small></td>
                                 </tr>
                                 @empty
@@ -322,7 +322,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-light">
-                    <h5 class="mb-0">Schedule Gaps (by Section & Day)</h5>
+                    <h5 class="mb-0">Schedule Gaps (by Group & Day)</h5>
                 </div>
                 <div class="card-body">
                     @if ($quality['gaps'])
@@ -330,7 +330,7 @@
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>Section</th>
+                                    <th>Groupe</th>
                                     <th>Day</th>
                                     <th>Gap</th>
                                 </tr>
@@ -338,7 +338,7 @@
                             <tbody>
                                 @foreach ($quality['gaps'] as $gap)
                                 <tr class="{{ $gap['has_gap'] ? 'table-warning' : '' }}">
-                                    <td>{{ $gap['section_name'] }}</td>
+                                    <td>{{ $gap['group_name'] ?? ($gap['section_name'] ?? '') }}</td>
                                     <td>{{ $gap['day_name'] }}</td>
                                     <td>
                                         @if ($gap['has_gap'])

@@ -6,8 +6,8 @@ use App\Models\Classroom;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\SchoolDay;
-use App\Models\Section;
 use App\Models\Semester;
+use App\Models\StudentGroup;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Timeslot;
@@ -44,8 +44,8 @@ class DashboardControllerTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $subject = Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001']);
-        $section = Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001']);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
@@ -55,7 +55,7 @@ class DashboardControllerTest extends TestCase
             'subject_id' => $subject->id,
             'teacher_id' => $teacher->id,
             'classroom_id' => $classroom->id,
-            'section_id' => $section->id,
+            'student_group_id' => $group->id,
             'day_id' => $day->id,
             'timeslot_id' => $timeslot->id,
         ]);

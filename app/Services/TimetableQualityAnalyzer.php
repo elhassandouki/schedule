@@ -112,7 +112,7 @@ class TimetableQualityAnalyzer
     {
         // Load all sessions
         $this->sessions = TimetableSession::where('semester_id', $this->semesterId)
-            ->with(['subject', 'teacher', 'section', 'classroom', 'day', 'timeslot'])
+            ->with(['subject', 'teacher', 'studentGroup', 'classroom', 'day', 'timeslot'])
             ->get()
             ->keyBy('id');
         
@@ -131,12 +131,18 @@ class TimetableQualityAnalyzer
             $this->requiredSessions += ($subject->sessions_per_week ?? 1);
         }
         
-        $this->skippedSessions = max(0, $this->requiredSessions - $this->generatedSessions);
+        $this->skippedSessions = 0; // skipped sessions are now reported by the generator
+
+        // Required sessions: sum of sessions_per_week across subjects scheduled for this semester
+        $this->requiredSessions = (int) (DB::table('timetable_sessions')
+            ->join('subjects', 'subjects.id', '=', 'timetable_sessions.subject_id')
+            ->where('timetable_sessions.semester_id', $this->semesterId)
+            ->sum(DB::raw('subjects.sessions_per_week')) ?? 0);
         
         // Load other data
-        $this->sections = DB::table('sections')
+        $this->groups = DB::table('student_groups')
             ->get()
-            ->keyBy('id');        if (is_object($this->sections) && method_exists($this->sections, 'all')) $this->sections = $this->sections->all();
+            ->keyBy('id');        if (is_object($this->groups) && method_exists($this->groups, 'all')) $this->groups = $this->groups->all();
         
         $this->teachers = DB::table('teachers')
             ->get()
@@ -194,11 +200,11 @@ class TimetableQualityAnalyzer
         // 3. Section double-booking?
         $sectionSlots = [];
         foreach ($this->sessions as $s) {
-            $key = "{$s->section_id}_{$s->day_id}_{$s->timeslot_id}";
+            $key = "{$s->student_group_id}_{$s->day_id}_{$s->timeslot_id}";
             if (isset($sectionSlots[$key])) {
                 $this->hardConflicts[] = [
-                    'type' => 'section_conflict',
-                    'message' => sprintf('Section %s is double-scheduled', $this->sections[$s->section_id]->name ?? 'Unknown'),
+                    'type' => 'group_conflict',
+                    'message' => sprintf('Group %s is double-scheduled', $this->groups[$s->student_group_id]->name ?? 'Unknown'),
                     'day' => $this->days[$s->day_id]->name ?? 'Unknown',
                     'timeslot' => "{$this->timeslots[$s->timeslot_id]->starts_at}-{$this->timeslots[$s->timeslot_id]->ends_at}",
                 ];
@@ -209,7 +215,7 @@ class TimetableQualityAnalyzer
         // 4. Capacity violations?
         foreach ($this->sessions as $s) {
             $classroom = $this->classrooms[$s->classroom_id] ?? null;
-            $section = $this->sections[$s->section_id] ?? null;
+            $section = $this->groups[$s->student_group_id] ?? null;
             if ($classroom && $section && $classroom->capacity < $section->capacity) {
                 $this->hardConflicts[] = [
                     'type' => 'capacity_violation',
@@ -224,7 +230,7 @@ class TimetableQualityAnalyzer
     {
         $workload = [
             'teachers' => [],
-            'sections' => [],
+            'student_groups' => [],
         ];
         
         // Teacher workload
@@ -263,10 +269,10 @@ class TimetableQualityAnalyzer
         // Section workload (hours per day)
         $sectionDayLoads = [];
         foreach ($this->sessions as $s) {
-            $key = "{$s->section_id}_{$s->day_id}";
+            $key = "{$s->student_group_id}_{$s->day_id}";
             if (!isset($sectionDayLoads[$key])) {
                 $sectionDayLoads[$key] = [
-                    'section_id' => $s->section_id,
+                    'student_group_id' => $s->student_group_id,
                     'day_id' => $s->day_id,
                     'hours' => 0,
                     'sessions' => [],
@@ -278,18 +284,18 @@ class TimetableQualityAnalyzer
         
         foreach ($sectionDayLoads as $load) {
             if ($load['hours'] > 6) {
-                $section = $this->sections[$load['section_id']] ?? null;
+                $section = $this->groups[$load['student_group_id']] ?? null;
                 $day = $this->days[$load['day_id']] ?? null;
                 $this->softWarnings[] = [
-                    'type' => 'section_overload',
-                    'message' => sprintf("Section has %s hours on %s", $load['hours'], $day->name ?? 'Unknown'),
-                    'section' => $section->name ?? 'Unknown',
+                    'type' => 'group_overload',
+                    'message' => sprintf("Group has %s hours on %s", $load['hours'], $day->name ?? 'Unknown'),
+                    'group' => $section->name ?? 'Unknown',
                     'day' => $day->name ?? 'Unknown',
                     'value' => "{$load['hours']}h",
                 ];
             }
             
-            $workload['sections'][] = $load;
+            $workload['student_groups'][] = $load;
         }
         
         return $workload;
@@ -343,10 +349,10 @@ class TimetableQualityAnalyzer
         
         $sectionDaySchedules = [];
         foreach ($this->sessions as $s) {
-            $key = "{$s->section_id}_{$s->day_id}";
+            $key = "{$s->student_group_id}_{$s->day_id}";
             if (!isset($sectionDaySchedules[$key])) {
                 $sectionDaySchedules[$key] = [
-                    'section_id' => $s->section_id,
+                    'student_group_id' => $s->student_group_id,
                     'day_id' => $s->day_id,
                     'timeslots' => [],
                 ];
@@ -361,28 +367,35 @@ class TimetableQualityAnalyzer
             $ts_list = array_values($this->timeslots);
             $gap_found = false;
             
-            for ($i = 0; $i < count($timeslots) - 1; $i++) {
-                $current = $timeslots[$i];
-                $next = $timeslots[$i + 1];
+            // Use timeslot positions (order), not IDs, since IDs may not match insertion order
+            $positions = array_map(
+                fn($tid) => (int) ($this->timeslots[$tid]->position ?? 0),
+                $timeslots
+            );
+            sort($positions);
+
+            for ($i = 0; $i < count($positions) - 1; $i++) {
+                $current = $positions[$i];
+                $next = $positions[$i + 1];
                 
                 if ($next - $current > 1) {
                     $gap_found = true;
-                    $section = $this->sections[$schedule['section_id']] ?? null;
+                    $section = $this->groups[$schedule['student_group_id']] ?? null;
                     $day = $this->days[$schedule['day_id']] ?? null;
                     $this->softWarnings[] = [
                         'type' => 'gap',
-                        'message' => sprintf('Large gap in schedule for section %s on %s', $section->name ?? 'Unknown', $day->name ?? 'Unknown'),
-                        'section' => $section->name ?? 'Unknown',
+                        'message' => sprintf('Large gap in schedule for group %s on %s', $section->name ?? 'Unknown', $day->name ?? 'Unknown'),
+                        'group' => $section->name ?? 'Unknown',
                         'day' => $day->name ?? 'Unknown',
                     ];
                     break;
                 }
             }
             
-            if ($gap_found || count($timeslots) > 0) {
+            if ($gap_found || count($timeslots) >= 2) {
                 $gaps[] = [
-                    'section_id' => $schedule['section_id'],
-                    'section_name' => $this->sections[$schedule['section_id']]->name ?? 'Unknown',
+                    'student_group_id' => $schedule['student_group_id'],
+                    'group_name' => $this->groups[$schedule['student_group_id']]->name ?? 'Unknown',
                     'day_id' => $schedule['day_id'],
                     'day_name' => $this->days[$schedule['day_id']]->name ?? 'Unknown',
                     'has_gap' => $gap_found,

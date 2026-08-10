@@ -6,8 +6,8 @@ use App\Models\Classroom;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\SchoolDay;
-use App\Models\Section;
 use App\Models\Semester;
+use App\Models\StudentGroup;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Timeslot;
@@ -39,13 +39,13 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'number' => 1,
         ]);
         $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
-        $section = Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
-        return compact('semester', 'subject', 'teacher', 'section', 'classroom', 'day', 'timeslot');
+        return compact('semester', 'subject', 'teacher', 'group', 'classroom', 'day', 'timeslot');
     }
 
     public function test_teacher_double_booking_is_prevented_by_unique_constraint(): void
@@ -55,7 +55,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -66,7 +66,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id + 1,
-            'section_id' => $data['section']->id + 1,
+            'student_group_id' => $data['group']->id + 1,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -80,7 +80,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -91,21 +91,21 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id + 1,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id + 1,
+            'student_group_id' => $data['group']->id + 1,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
         ]);
     }
 
-    public function test_section_double_booking_is_prevented_by_unique_constraint(): void
+    public function test_group_double_booking_is_prevented_by_unique_constraint(): void
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -116,7 +116,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['teacher']->id + 1,
             'classroom_id' => $data['classroom']->id + 1,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -131,7 +131,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'subject_id' => 999999,
             'teacher_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,

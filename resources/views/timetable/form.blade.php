@@ -32,7 +32,7 @@
 
                     <div class="card-body">
                         <div class="row">
-                            @foreach (['semester' => 'Semestre', 'subject' => 'Matière', 'teacher' => 'Professeur', 'classroom' => 'Salle', 'section' => 'Groupe d\'étudiants', 'day' => 'Jour', 'timeslot' => 'Créneau horaire'] as $field => $label)
+                            @foreach (['semester' => 'Semestre', 'subject' => 'Matière', 'teacher' => 'Professeur', 'classroom' => 'Salle', 'studentGroup' => 'Groupe d\'étudiants', 'day' => 'Jour', 'timeslot' => 'Créneau horaire'] as $field => $label)
                                 <div class="form-group col-md-6">
                                     <label for="{{ $field }}_id" class="font-weight-bold">
                                         {{ $label }}

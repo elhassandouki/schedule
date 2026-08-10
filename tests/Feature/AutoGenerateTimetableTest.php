@@ -6,8 +6,8 @@ use App\Models\Classroom;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\SchoolDay;
-use App\Models\Section;
 use App\Models\Semester;
+use App\Models\StudentGroup;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Timeslot;
@@ -39,14 +39,14 @@ class AutoGenerateTimetableTest extends TestCase
             'number' => 1,
         ]);
         $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['semester_id' => $semester->id, 'teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 2]);
-        $section = Section::create(['program_id' => $program->id, 'name' => 'G1', 'capacity' => 30]);
+        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 2]);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
         $timeslot2 = Timeslot::create(['name' => '10:00-12:00', 'starts_at' => '10:00', 'ends_at' => '12:00', 'position' => 2]);
 
-        return compact('semester', 'subject', 'section', 'day', 'timeslot', 'timeslot2');
+        return compact('semester', 'subject', 'group', 'day', 'timeslot', 'timeslot2');
     }
 
     public function test_generation_creates_timetable_sessions_and_not_timetable_entries(): void
@@ -69,13 +69,13 @@ class AutoGenerateTimetableTest extends TestCase
             'name' => 'S2',
             'number' => 2,
         ]);
-        $otherSubject = Subject::create(['semester_id' => $otherSemester->id, 'teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
-        $otherSection = Section::create(['program_id' => $data['semester']->program_id, 'name' => 'G2', 'capacity' => 30]);
+        $otherSubject = Subject::create(['teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
+        $otherGroup = StudentGroup::create(['semester_id' => $otherSemester->id, 'name' => 'G2', 'capacity' => 30]);
         DB::table('timetable_sessions')->insert([
             'subject_id' => $otherSubject->id,
             'teacher_id' => $data['subject']->teacher_id,
             'classroom_id' => 1,
-            'section_id' => $otherSection->id,
+            'student_group_id' => $otherGroup->id,
             'semester_id' => $otherSemester->id,
             'day_id' => 1,
             'timeslot_id' => 1,
@@ -93,13 +93,12 @@ class AutoGenerateTimetableTest extends TestCase
     public function test_generation_reports_skips_and_conflicts(): void
     {
         $data = $this->seedSemesterContext();
-        $otherSubject = Subject::create(['semester_id' => $data['semester']->id, 'teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
-        $otherSection = Section::create(['program_id' => $data['semester']->program_id, 'name' => 'G2', 'capacity' => 30]);
+        $otherSubject = Subject::create(['teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
         DB::table('timetable_sessions')->insert([
             'subject_id' => $data['subject']->id,
             'teacher_id' => $data['subject']->teacher_id,
             'classroom_id' => 1,
-            'section_id' => $data['section']->id,
+            'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => 1,
             'timeslot_id' => 1,
@@ -110,7 +109,7 @@ class AutoGenerateTimetableTest extends TestCase
         $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
 
         $this->assertGreaterThanOrEqual(0, $report['sessions_skipped']);
-        $this->assertIsArray($report['subjects']);
+        $this->assertIsArray($report['generated_per_subject'] ?? []);
         $this->assertGreaterThanOrEqual(1, $report['sessions_generated']);
     }
 }

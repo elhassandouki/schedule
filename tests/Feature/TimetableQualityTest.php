@@ -188,7 +188,9 @@ class TimetableQualityTest extends TestCase
             ->get("/timetable/{$semester->id}/quality");
         
         $response->assertSee('/100');
-        $response->assertSee('Excellent', 'Good', 'Needs Improvement', 'Poor');
+        $analyzer = new TimetableQualityAnalyzer();
+        $rating = $analyzer->analyze($semester->id)['quality_rating'];
+        $response->assertSee($rating);
     }
 
     /**
