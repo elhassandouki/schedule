@@ -20,9 +20,8 @@ class TimetableQualityController extends Controller
         if ($user->role === 'prof') {
             // Prof can view quality report but only for semesters where they teach
             $hasAccess = DB::table('timetable_sessions')
-                ->join('subjects', 'subjects.id', '=', 'timetable_sessions.subject_id')
                 ->where('timetable_sessions.semester_id', $semesterId)
-                ->where('subjects.teacher_id', DB::table('teachers')->where('user_id', $user->id)->value('id'))
+                ->where('timetable_sessions.professor_id', $user->id)
                 ->exists();
             
             abort_if(!$hasAccess, 403, 'Not authorized to view this quality report');
@@ -52,7 +51,7 @@ class TimetableQualityController extends Controller
         
         // Filter sensitive data if user is prof
         if ($user->role === 'prof') {
-            $teacherId = DB::table('teachers')->where('user_id', $user->id)->value('id');
+            $teacherId = $user->id;
             
             // Filter workload: only show own workload
             $quality['workload']['teachers'] = collect($quality['workload']['teachers'])
@@ -66,7 +65,7 @@ class TimetableQualityController extends Controller
                     return DB::table('timetable_sessions')
                         ->where('student_group_id', $s['student_group_id'])
                         ->where('semester_id', $semesterId)
-                        ->where('teacher_id', $teacherId)
+                        ->where('professor_id', $teacherId)
                         ->exists();
                 })
                 ->values()
@@ -76,7 +75,7 @@ class TimetableQualityController extends Controller
             $quality['soft_warnings'] = collect($quality['soft_warnings'])
                 ->filter(function ($w) use ($teacherId) {
                     if ($w['type'] === 'teacher_overload' || $w['type'] === 'long_consecutive') {
-                        return isset($w['teacher']) && DB::table('teachers')
+                        return isset($w['teacher']) && DB::table('users')
                             ->where('id', $teacherId)
                             ->where('name', $w['teacher'])
                             ->exists();
@@ -112,9 +111,8 @@ class TimetableQualityController extends Controller
         // Check authorization (same logic as show)
         if ($user->role === 'prof') {
             $hasAccess = DB::table('timetable_sessions')
-                ->join('subjects', 'subjects.id', '=', 'timetable_sessions.subject_id')
                 ->where('timetable_sessions.semester_id', $semesterId)
-                ->where('subjects.teacher_id', DB::table('teachers')->where('user_id', $user->id)->value('id'))
+                ->where('timetable_sessions.professor_id', $user->id)
                 ->exists();
             
             if (!$hasAccess) {

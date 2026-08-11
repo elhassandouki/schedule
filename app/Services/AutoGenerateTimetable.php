@@ -4,244 +4,101 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 
-/**
- * Auto-generation service: creates TimetableSession records.
- *
- * Design:
- *  - Subjects are INDEPENDENT (not tied to semester)
- *  - ALL subjects → ALL student groups in the semester
- *  - Professor assigned per subject
- *
- * Constraints enforced:
- *  1. No teacher teaches two places at the same time (day/timeslot/semester)
- *  2. No classroom is double-booked (day/timeslot/semester)
- *  3. No student group is double-booked (day/timeslot/semester)
- *  4. Classroom capacity ≥ group size
- *
- * Algorithm: Greedy slot-filling
- *  - For each SUBJECT (all of them, no semester filter)
- *  - For each STUDENT GROUP in the semester
- *  - Fill required sessions_per_week into earliest available (day, timeslot)
- *  - Use subject's teacher, check conflicts, skip if violated
- */
+/** Generates an employment timetable from the selected semester's modules. */
 class AutoGenerateTimetable
 {
-    private array $generated = [];
-    private array $skipped = [];
-    private int $totalRequiredSessions = 0;
-    private int $totalGeneratedSessions = 0;
-    private int $totalSkippedSessions = 0;
-    private int $conflictsEncountered = 0;
-    private int $unavailableSlots = 0;
-
     public function generate(int $semesterId): array
     {
-        $this->resetStats();
-
         $semester = DB::table('semesters')->find($semesterId);
-        if (!$semester) {
-            return ['success' => false, 'error' => "Semester #{$semesterId} not found"];
-        }
+        if (!$semester) return ['success' => false, 'error' => "Semester #{$semesterId} not found"];
 
-        // Load ALL subjects (independent, no semester filter)
-        $subjects = DB::table('subjects')->get();
-        if ($subjects->isEmpty()) {
-            return ['success' => false, 'error' => "No subjects found in the system"];
-        }
-
-        // Load student groups for THIS semester
-        $studentGroups = DB::table('student_groups')
-            ->where('semester_id', $semesterId)
-            ->get();
-        if ($studentGroups->isEmpty()) {
-            return ['success' => false, 'error' => "No student groups found for semester #{$semesterId}"];
-        }
-
+        $modules = DB::table('modules')->where('semester_id', $semesterId)
+            ->where('program_id', $semester->program_id)->get();
+        $groups = DB::table('student_groups')->where('semester_id', $semesterId)->get();
         $days = DB::table('days')->orderBy('position')->get();
-        $timeslots = DB::table('timeslots')->orderBy('position')->get();
-        $classrooms = DB::table('classrooms')->orderBy('capacity', 'desc')->get();
+        $slots = DB::table('timeslots')->orderBy('position')->get();
+        $rooms = DB::table('classrooms')->orderBy('capacity')->get();
 
-        if ($days->isEmpty() || $timeslots->isEmpty() || $classrooms->isEmpty()) {
-            return ['success' => false, 'error' => "Missing days, timeslots, or classrooms"];
-        }
+        if ($modules->isEmpty()) return ['success' => false, 'error' => 'No modules found for this semester'];
+        if ($groups->isEmpty()) return ['success' => false, 'error' => 'No student groups found for this semester'];
+        if ($days->isEmpty() || $slots->isEmpty() || $rooms->isEmpty()) return ['success' => false, 'error' => 'Missing days, timeslots, or classrooms'];
 
-        // Generate: Subject × StudentGroup combinations
-        foreach ($subjects as $subject) {
-            $this->generated[$subject->id] = 0;
-            $this->skipped[$subject->id] = [];
+        $generated = $skipped = [];
+        $totalGenerated = $totalSkipped = 0;
 
-            $sessionsNeeded = (int) ($subject->sessions_per_week ?? 1);
-            $requiredForSubject = $sessionsNeeded * count($studentGroups);
-            $this->totalRequiredSessions += $requiredForSubject;
+        foreach ($modules as $module) {
+            $generated[$module->id] = 0;
+            $skipped[$module->id] = [];
+            $professors = DB::table('professor_module')->where('module_id', $module->id)
+                ->join('users', 'users.id', '=', 'professor_module.professor_id')
+                ->select('users.id')->get();
+            $needed = max(1, (int) ceil(($module->weekly_hours ?? 2) / 2));
 
-            // Use subject's teacher, or skip if none assigned
-            $teacherId = $subject->teacher_id;
-            if (!$teacherId) {
-                $this->skipped[$subject->id][] = "No teacher assigned to subject";
-                $this->totalSkippedSessions += $requiredForSubject;
+            if ($professors->isEmpty()) {
+                $skipped[$module->id][] = 'No professor is assigned to this module';
+                $totalSkipped += $needed * $groups->count();
                 continue;
             }
 
-            foreach ($studentGroups as $group) {
-                $remaining = $sessionsNeeded;
+            foreach ($groups as $group) {
+                $remaining = $needed;
+                foreach ($days as $day) foreach ($slots as $slot) {
+                    if ($remaining === 0) break 2;
+                    $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->exists('classroom_id', $r->id, $day->id, $slot->id, $semesterId));
+                    if (!$room) continue;
+                    $professor = $professors->first(fn ($p) => !$this->exists('professor_id', $p->id, $day->id, $slot->id, $semesterId)
+                        && $this->professorIsAvailable($p->id, $day->position, $slot));
+                    if (!$professor || $this->exists('student_group_id', $group->id, $day->id, $slot->id, $semesterId)
+                        || !$this->groupCanStudy($group->id, $day->position, $day->id, $slot, $semesterId)) continue;
 
-                foreach ($days as $day) {
-                    if ($remaining <= 0) break;
-
-                    foreach ($timeslots as $timeslot) {
-                        if ($remaining <= 0) break;
-
-                        // Find available classroom for this group size
-                        $classroom = $this->findAvailableClassroom(
-                            $group->capacity,
-                            $day->id,
-                            $timeslot->id,
-                            $classrooms,
-                            $semesterId
-                        );
-
-                        if (!$classroom) {
-                            $this->unavailableSlots++;
-                            $this->skipped[$subject->id][] = "No available classroom for {$group->name} on {$day->name}";
-                            $this->totalSkippedSessions++;
-                            continue;
-                        }
-
-                        // Check conflicts before inserting
-                        $conflict = $this->checkConstraints(
-                            $teacherId,
-                            $group->id,
-                            $day->id,
-                            $timeslot->id,
-                            $classroom->id,
-                            $semesterId
-                        );
-
-                        if ($conflict) {
-                            $this->conflictsEncountered++;
-                            $this->skipped[$subject->id][] = $conflict;
-                            $this->totalSkippedSessions++;
-                            continue;
-                        }
-
-                        // INSERT session
-                        DB::table('timetable_sessions')->insert([
-                            'subject_id' => $subject->id,
-                            'teacher_id' => $teacherId,
-                            'student_group_id' => $group->id,
-                            'classroom_id' => $classroom->id,
-                            'semester_id' => $semesterId,
-                            'day_id' => $day->id,
-                            'timeslot_id' => $timeslot->id,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-
-                        $this->generated[$subject->id]++;
-                        $this->totalGeneratedSessions++;
-                        $remaining--;
-                    }
+                    DB::table('timetable_sessions')->insert([
+                        'module_id' => $module->id, 'professor_id' => $professor->id,
+                        'semester_id' => $semesterId, 'student_group_id' => $group->id,
+                        'classroom_id' => $room->id, 'day_id' => $day->id, 'timeslot_id' => $slot->id,
+                        'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                    $generated[$module->id]++; $totalGenerated++; $remaining--;
                 }
+                if ($remaining) { $totalSkipped += $remaining; $skipped[$module->id][] = "Not enough available slots for {$group->name}"; }
             }
         }
 
-        $success = $this->totalSkippedSessions === 0;
-
-        return [
-            'success' => $success,
-            'sessions_generated' => $this->totalGeneratedSessions,
-            'sessions_skipped' => $this->totalSkippedSessions,
-            'conflicts_encountered' => $this->conflictsEncountered,
-            'unavailable_slots' => $this->unavailableSlots,
-            'generated_per_subject' => $this->generated,
-            'skipped_per_subject' => $this->skipped,
-        ];
+        return ['success' => $totalSkipped === 0, 'sessions_generated' => $totalGenerated,
+            'sessions_skipped' => $totalSkipped, 'generated_per_module' => $generated,
+            'skipped_per_module' => $skipped];
     }
 
-    private function findAvailableClassroom(
-        int $requiredCapacity,
-        int $dayId,
-        int $timeslotId,
-        $classrooms,
-        int $semesterId
-    ) {
-        foreach ($classrooms as $classroom) {
-            // Capacity check
-            if ($classroom->capacity < $requiredCapacity) {
-                continue;
-            }
-
-            // Check if booked
-            $isBooked = DB::table('timetable_sessions')
-                ->where('classroom_id', $classroom->id)
-                ->where('day_id', $dayId)
-                ->where('timeslot_id', $timeslotId)
-                ->where('semester_id', $semesterId)
-                ->exists();
-
-            if (!$isBooked) {
-                return $classroom;
-            }
-        }
-
-        return null;
-    }
-
-    private function checkConstraints(
-        int $teacherId,
-        int $studentGroupId,
-        int $dayId,
-        int $timeslotId,
-        int $classroomId,
-        int $semesterId
-    ): ?string {
-        // Teacher conflict
-        $teacherConflict = DB::table('timetable_sessions')
-            ->where('teacher_id', $teacherId)
-            ->where('day_id', $dayId)
-            ->where('timeslot_id', $timeslotId)
-            ->where('semester_id', $semesterId)
-            ->exists();
-
-        if ($teacherConflict) {
-            return "Teacher already teaching at this time";
-        }
-
-        // Group conflict
-        $groupConflict = DB::table('timetable_sessions')
-            ->where('student_group_id', $studentGroupId)
-            ->where('day_id', $dayId)
-            ->where('timeslot_id', $timeslotId)
-            ->where('semester_id', $semesterId)
-            ->exists();
-
-        if ($groupConflict) {
-            return "Group already has class at this time";
-        }
-
-        // Classroom conflict (double-check)
-        $classroomConflict = DB::table('timetable_sessions')
-            ->where('classroom_id', $classroomId)
-            ->where('day_id', $dayId)
-            ->where('timeslot_id', $timeslotId)
-            ->where('semester_id', $semesterId)
-            ->exists();
-
-        if ($classroomConflict) {
-            return "Classroom already booked at this time";
-        }
-
-        return null;
-    }
-
-    private function resetStats(): void
+    private function exists(string $column, int $id, int $dayId, int $slotId, int $semesterId): bool
     {
-        $this->generated = [];
-        $this->skipped = [];
-        $this->totalRequiredSessions = 0;
-        $this->totalGeneratedSessions = 0;
-        $this->totalSkippedSessions = 0;
-        $this->conflictsEncountered = 0;
-        $this->unavailableSlots = 0;
+        return DB::table('timetable_sessions')->where($column, $id)->where('day_id', $dayId)
+            ->where('timeslot_id', $slotId)->where('semester_id', $semesterId)->exists();
+    }
+
+    private function professorIsAvailable(int $professorId, int $dayOfWeek, object $slot): bool
+    {
+        $availability = DB::table('professor_availabilities')->where('professor_id', $professorId)
+            ->where('day_of_week', $dayOfWeek)->get();
+        if ($availability->isEmpty()) return true;
+        $start = $this->minutes($slot->starts_at); $end = $this->minutes($slot->ends_at);
+        return $availability->contains(fn ($row) => $row->available && $row->start_minute <= $start && $row->end_minute >= $end);
+    }
+
+    private function groupCanStudy(int $groupId, int $dayOfWeek, int $dayId, object $slot, int $semesterId): bool
+    {
+        $condition = DB::table('group_study_conditions')->where('student_group_id', $groupId)
+            ->where('day_of_week', $dayOfWeek)->first();
+        if (!$condition) return true;
+        $start = $this->minutes($slot->starts_at); $end = $this->minutes($slot->ends_at);
+        if ($condition->start_minute > $start || $condition->end_minute < $end) return false;
+        $scheduledMinutes = DB::table('timetable_sessions as ts')->join('timeslots as t', 't.id', '=', 'ts.timeslot_id')
+            ->where('ts.student_group_id', $groupId)->where('ts.semester_id', $semesterId)->where('ts.day_id', $dayId)
+            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at)) / 60), 0) as total')->value('total');
+        return ((int) $scheduledMinutes + $end - $start) <= $condition->max_daily_minutes;
+    }
+
+    private function minutes(string $time): int
+    {
+        [$hours, $minutes] = array_map('intval', explode(':', $time));
+        return $hours * 60 + $minutes;
     }
 }

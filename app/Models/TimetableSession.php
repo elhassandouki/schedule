@@ -6,16 +6,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TimetableSession extends Model {
     protected $guarded = [];
     
-    public function subject(): BelongsTo { 
-        return $this->belongsTo(Subject::class); 
+    public function module(): BelongsTo {
+        return $this->belongsTo(Module::class);
+    }
+
+    // Legacy relations are retained only so historic timetable rows can still
+    // be read during the transition; new sessions use module/professor.
+    public function subject(): BelongsTo {
+        return $this->belongsTo(Subject::class);
     }
     
     public function semester(): BelongsTo { 
         return $this->belongsTo(Semester::class); 
     }
     
-    public function teacher(): BelongsTo { 
-        return $this->belongsTo(Teacher::class); 
+    public function professor(): BelongsTo {
+        return $this->belongsTo(User::class, 'professor_id');
+    }
+
+    public function teacher(): BelongsTo {
+        return $this->belongsTo(Teacher::class);
     }
     
     public function classroom(): BelongsTo { 

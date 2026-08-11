@@ -128,14 +128,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (session('unplaced') as $subject)
+                            @foreach (session('unplaced') as $module)
                                 <tr>
-                                    <td class="font-weight-600">{{ $subject['subject_name'] }}</td>
-                                    <td><span class="badge badge-success">{{ $subject['generated'] }}</span></td>
-                                    <td><span class="badge badge-danger">{{ $subject['skipped'] }}</span></td>
+                                    <td class="font-weight-600">{{ $module['module_name'] }}</td>
+                                    <td><span class="badge badge-success">{{ $module['generated'] }}</span></td>
+                                    <td><span class="badge badge-danger">{{ $module['skipped'] }}</span></td>
                                     <td>
                                         <ul class="mb-0 ps-3">
-                                            @foreach ($subject['errors'] as $error)
+                                            @foreach ($module['errors'] as $error)
                                                 <li>{{ $error }}</li>
                                             @endforeach
                                         </ul>

@@ -383,22 +383,22 @@ return [
                 ],
                 [
                     'text' => 'Groupes d\'étudiants',
-                    'url' => 'gestion/sections',
+                    'url' => 'gestion/groupes',
                     'icon' => 'fas fa-users',
                 ],
                 [
                     'text' => 'Enseignants',
-                    'url' => 'gestion/teachers',
+                    'url' => 'gestion/professeurs',
                     'icon' => 'fas fa-chalkboard-teacher',
                 ],
                 [
                     'text' => 'Étudiants',
-                    'url' => 'gestion/students',
+                    'url' => 'gestion/groupes',
                     'icon' => 'fas fa-user-graduate',
                 ],
                 [
                     'text' => 'Matières',
-                    'url' => 'gestion/subjects',
+                    'url' => 'gestion/modules',
                     'icon' => 'fas fa-book',
                 ],
             ],

@@ -30,7 +30,7 @@ class AnalyzeTimetableQuality extends Command
         $this->info('');
         $this->info('Workload analysis:');
         $this->table(['Teacher', 'Sessions', 'Hours'], collect($analysis['teacher_workload'])->map(function ($entry, $teacherId) {
-            $teacherName = DB::table('teachers')->find($teacherId)?->name ?? '#'.$teacherId;
+            $teacherName = DB::table('users')->find($teacherId)?->name ?? '#'.$teacherId;
             return [$teacherName, $entry['sessions'] ?? 0, $entry['hours'] ?? 0];
         })->values()->all());
         $this->info('');

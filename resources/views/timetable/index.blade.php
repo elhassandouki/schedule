@@ -48,10 +48,10 @@
             </div>
 
             <div class="col-md-2 mb-2">
-                <select name="teacher_id" class="form-control" onchange="this.form.submit()">
+                <select name="professor_id" class="form-control" onchange="this.form.submit()">
                     <option value="">Tous les professeurs</option>
-                    @foreach ($teachers as $item)
-                        <option value="{{ $item->id }}" @selected(request('teacher_id') == $item->id)>
+                    @foreach ($professors as $item)
+                        <option value="{{ $item->id }}" @selected(request('professor_id') == $item->id)>
                             {{ $item->name }}
                         </option>
                     @endforeach
@@ -116,11 +116,11 @@
                                         <div class="card card-sm mb-2 border-left border-primary">
                                             <div class="card-body p-2">
                                                 <p class="mb-1">
-                                                    <strong class="text-primary">{{ $session->subject->name }}</strong>
+                                                    <strong class="text-primary">{{ $session->module->name }}</strong>
                                                 </p>
                                                 <small class="text-muted d-block">
                                                     <i class="fas fa-chalkboard-user"></i>
-                                                    {{ $session->teacher->name }}
+                                                    {{ $session->professor->name }}
                                                 </small>
                                                 <small class="text-muted d-block">
                                                     <i class="fas fa-door-open"></i>
@@ -188,7 +188,7 @@
                 <span class="info-box-icon bg-success"><i class="fas fa-chalkboard-user"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">Professeurs</span>
-                    <span class="info-box-number">{{ $teachers->count() }}</span>
+                    <span class="info-box-number">{{ $professors->count() }}</span>
                 </div>
             </div>
         </div>

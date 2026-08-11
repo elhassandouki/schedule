@@ -2,7 +2,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Semester;
-use App\Models\Teacher;
 use App\Models\TimetableSession;
 use App\Models\ScheduleHistory;
 use App\Services\AutoGenerateTimetable;
@@ -17,7 +16,7 @@ class DashboardController extends Controller
             'counts' => [
                 'filières' => DB::table('programs')->count(),
                 'semestres' => DB::table('semesters')->count(),
-                'groupes' => DB::table('sections')->count(),
+                'groupes' => DB::table('student_groups')->count(),
                 'professeurs' => DB::table('users')->where('role', 'prof')->count(),
             ],
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
@@ -28,9 +27,9 @@ class DashboardController extends Controller
                 'programs' => DB::table('programs')->count(),
                 'semesters' => DB::table('semesters')->count(),
                 'classrooms' => DB::table('classrooms')->count(),
-                'sections' => DB::table('sections')->count(),
-                'teachers' => DB::table('teachers')->count(),
-                'subjects' => DB::table('subjects')->count(),
+                'groupes' => DB::table('student_groups')->count(),
+                'teachers' => DB::table('users')->where('role', 'prof')->count(),
+                'modules' => DB::table('modules')->count(),
                 'timeslots' => DB::table('timeslots')->count(),
                 'days' => DB::table('days')->count(),
             ],
@@ -57,6 +56,10 @@ class DashboardController extends Controller
             ['key' => 'sections', 'label' => 'Groupes', 'resource' => 'sections', 'table' => 'sections', 'desc' => 'Groupes d’étudiants par filière'],
             ['key' => 'subjects', 'label' => 'Matières', 'resource' => 'subjects', 'table' => 'subjects', 'desc' => 'Rattachées à un semestre, enseignant et groupe'],
         ];
+        $steps = array_values(array_filter($steps, fn (array $step) => $step['key'] !== 'subjects'));
+        $steps = array_values(array_filter($steps, fn (array $step) => !in_array($step['key'], ['sections', 'teachers'], true)));
+        $steps[] = ['key' => 'modules', 'label' => 'Modules', 'resource' => 'modules', 'table' => 'modules', 'desc' => 'Rattachés à une filière et un semestre'];
+        $steps[] = ['key' => 'groupes', 'label' => 'Groupes', 'resource' => 'groupes', 'table' => 'student_groups', 'desc' => 'Rattachés à un semestre avec leur capacité'];
 
         foreach ($steps as &$step) {
             $step['count'] = (int) DB::table($step['table'])->count();
@@ -87,14 +90,14 @@ class DashboardController extends Controller
         $semester = DB::table('semesters')->find($semesterId);
         
         // Validate required data exists
-        $subjects = DB::table('subjects')->count(); // ALL subjects, independent of semester
+        $modules = DB::table('modules')->where('semester_id', $semesterId)->where('program_id', $semester->program_id)->count();
         $studentGroups = DB::table('student_groups')->where('semester_id', $semesterId)->count();
         $classrooms = DB::table('classrooms')->count();
         $days = DB::table('days')->count();
         $timeslots = DB::table('timeslots')->count();
 
         $missing = [];
-        if ($subjects === 0) $missing[] = 'Subjects (courses to teach)';
+        if ($modules === 0) $missing[] = 'Modules (courses for this semester)';
         if ($studentGroups === 0) $missing[] = 'Student Groups (for this semester)';
         if ($classrooms === 0) $missing[] = 'Classrooms (rooms)';
         if ($days === 0) $missing[] = 'Days (work days)';
@@ -133,9 +136,12 @@ class DashboardController extends Controller
             $message .= " (" . ($report['sessions_skipped'] ?? 0) . " non placée(s) à cause de conflits)";
         }
 
-        $unplaced = collect($report['skipped_per_subject'] ?? [])
-            ->filter(fn (array $s) => !empty($s))
-            ->all();
+        $unplaced = collect($report['skipped_per_module'] ?? [])
+            ->map(fn (array $errors, $moduleId) => [
+                'module_name' => DB::table('modules')->where('id', $moduleId)->value('name'),
+                'generated' => $report['generated_per_module'][$moduleId] ?? 0,
+                'skipped' => count($errors), 'errors' => $errors,
+            ])->filter(fn (array $module) => $module['skipped'] > 0)->values()->all();
 
         return redirect()->route('timetable.show', $semesterId)
             ->with('success', $message)
@@ -176,27 +182,23 @@ class DashboardController extends Controller
             return true;
         }
 
-        $teacherIds = Teacher::where('user_id', $user->id)->pluck('id');
-        return $teacherIds->isNotEmpty() && TimetableSession::where('semester_id', $semester->id)
-            ->whereIn('teacher_id', $teacherIds)
-            ->exists();
+        return TimetableSession::where('semester_id', $semester->id)->where('professor_id', $user->id)->exists();
     }
 
     private function resolveEntriesForSemester(Semester $semester, $user, bool $isAdminOrChef)
     {
         $semesterId = $semester->id;
         $query = DB::table('timetable_sessions as ts')
-            ->join('subjects as s', 's.id', '=', 'ts.subject_id')
+            ->join('modules as m', 'm.id', '=', 'ts.module_id')
             ->join('student_groups as sg', 'sg.id', '=', 'ts.student_group_id')
-            ->join('teachers as teach', 'teach.id', '=', 'ts.teacher_id')
+            ->join('users as professor', 'professor.id', '=', 'ts.professor_id')
             ->join('classrooms as c', 'c.id', '=', 'ts.classroom_id')
             ->join('days as d', 'd.id', '=', 'ts.day_id')
             ->join('timeslots as slot', 'slot.id', '=', 'ts.timeslot_id')
             ->where('ts.semester_id', $semesterId);
 
         if (!$isAdminOrChef) {
-            $teacherIds = Teacher::where('user_id', $user->id)->pluck('id');
-            $query->whereIn('ts.teacher_id', $teacherIds);
+            $query->where('ts.professor_id', $user->id);
         }
 
         return $query
@@ -206,9 +208,9 @@ class DashboardController extends Controller
                 'ts.id',
                 'ts.day_id',
                 'ts.timeslot_id',
-                's.name as module',
+                'm.name as module',
                 'sg.name as groupe',
-                'teach.name as professeur',
+                'professor.name as professeur',
                 'c.name as salle',
                 'd.name as day_name',
                 'slot.name as timeslot_name',
@@ -218,4 +220,3 @@ class DashboardController extends Controller
             ->get();
     }
 }
-

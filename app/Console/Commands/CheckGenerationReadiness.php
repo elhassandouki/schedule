@@ -22,13 +22,13 @@ class CheckGenerationReadiness extends Command
 
         $this->info("\n📋 GENERATION READINESS CHECK for Semester: {$semester->name}\n");
 
-        // Check subjects
-        $subjects = DB::table('subjects')->where('semester_id', $semesterId)->get();
-        $this->checkData('Subjects', $subjects, 'subjects', 'A subject defines which courses need to be taught');
+        // Check modules assigned to this semester and programme.
+        $modules = DB::table('modules')->where('semester_id', $semesterId)->where('program_id', $semester->program_id)->get();
+        $this->checkData('Modules', $modules, 'modules', 'A module defines the courses to be taught');
 
-        // Check sections
-        $sections = DB::table('sections')->where('program_id', $semester->program_id)->get();
-        $this->checkData('Sections (Student Groups)', $sections, 'sections', 'A section is a group of students that need the subject');
+        // Check groups for this exact semester.
+        $groups = DB::table('student_groups')->where('semester_id', $semesterId)->get();
+        $this->checkData('Student Groups', $groups, 'student_groups', 'A group is scheduled for every module in the semester');
 
         // Check classrooms
         $classrooms = DB::table('classrooms')->get();
@@ -43,7 +43,7 @@ class CheckGenerationReadiness extends Command
         $this->checkData('Timeslots', $timeslots, 'timeslots', 'Time periods (e.g. 8:00-10:00, 10:00-12:00)');
 
         // Check teachers
-        $teachers = DB::table('teachers')->get();
+        $teachers = DB::table('users')->where('role', 'prof')->get();
         if ($teachers->isEmpty()) {
             $this->warn("⚠️  No teachers found - subjects won't be assigned");
         }

@@ -112,39 +112,36 @@ class TimetableQualityAnalyzer
     {
         // Load all sessions
         $this->sessions = TimetableSession::where('semester_id', $this->semesterId)
-            ->with(['subject', 'teacher', 'studentGroup', 'classroom', 'day', 'timeslot'])
+            ->with(['module', 'professor', 'studentGroup', 'classroom', 'day', 'timeslot'])
             ->get()
             ->keyBy('id');
         
         $this->generatedSessions = count($this->sessions);
         
         // Load subjects and calculate required sessions
-        $this->subjects = DB::table('subjects')
+        $this->subjects = DB::table('modules')
             ->whereIn('id', DB::table('timetable_sessions')
                 ->where('semester_id', $this->semesterId)
-                ->distinct('subject_id')
-                ->pluck('subject_id'))
+                ->distinct('module_id')
+                ->pluck('module_id'))
             ->get()
             ->keyBy('id');
         
         foreach ($this->subjects as $subject) {
-            $this->requiredSessions += ($subject->sessions_per_week ?? 1);
+            $this->requiredSessions += max(1, (int) ceil(($subject->weekly_hours ?? 2) / 2));
         }
         
         $this->skippedSessions = 0; // skipped sessions are now reported by the generator
 
         // Required sessions: sum of sessions_per_week across subjects scheduled for this semester
-        $this->requiredSessions = (int) (DB::table('timetable_sessions')
-            ->join('subjects', 'subjects.id', '=', 'timetable_sessions.subject_id')
-            ->where('timetable_sessions.semester_id', $this->semesterId)
-            ->sum(DB::raw('subjects.sessions_per_week')) ?? 0);
+        $this->requiredSessions = max($this->requiredSessions, $this->generatedSessions);
         
         // Load other data
         $this->groups = DB::table('student_groups')
             ->get()
             ->keyBy('id');        if (is_object($this->groups) && method_exists($this->groups, 'all')) $this->groups = $this->groups->all();
         
-        $this->teachers = DB::table('teachers')
+        $this->teachers = DB::table('users')->where('role', 'prof')
             ->get()
             ->keyBy('id');        if (is_object($this->teachers) && method_exists($this->teachers, 'all')) $this->teachers = $this->teachers->all();
         
@@ -170,11 +167,11 @@ class TimetableQualityAnalyzer
         // 1. Teacher double-booking?
         $teacherSlots = [];
         foreach ($this->sessions as $s) {
-            $key = "{$s->teacher_id}_{$s->day_id}_{$s->timeslot_id}";
+            $key = "{$s->professor_id}_{$s->day_id}_{$s->timeslot_id}";
             if (isset($teacherSlots[$key])) {
                 $this->hardConflicts[] = [
                     'type' => 'teacher_conflict',
-                    'message' => sprintf('Teacher %s teaches two sessions at same time', $this->teachers[$s->teacher_id]->name ?? 'Unknown'),
+                    'message' => sprintf('Teacher %s teaches two sessions at same time', $this->teachers[$s->professor_id]->name ?? 'Unknown'),
                     'day' => $this->days[$s->day_id]->name ?? 'Unknown',
                     'timeslot' => "{$this->timeslots[$s->timeslot_id]->starts_at}-{$this->timeslots[$s->timeslot_id]->ends_at}",
                 ];
@@ -220,7 +217,7 @@ class TimetableQualityAnalyzer
                 $this->hardConflicts[] = [
                     'type' => 'capacity_violation',
                     'message' => "Classroom {$classroom->name} (capacity {$classroom->capacity}) too small for section {$section->name} ({$section->capacity} students)",
-                    'subject' => $this->subjects[$s->subject_id]->name ?? 'Unknown',
+                    'subject' => $this->subjects[$s->module_id]->name ?? 'Unknown',
                 ];
             }
         }
@@ -236,10 +233,10 @@ class TimetableQualityAnalyzer
         // Teacher workload
         $teacherLoads = [];
         foreach ($this->sessions as $s) {
-            if (!isset($teacherLoads[$s->teacher_id])) {
-                $teacherLoads[$s->teacher_id] = [];
+            if (!isset($teacherLoads[$s->professor_id])) {
+                $teacherLoads[$s->professor_id] = [];
             }
-            $teacherLoads[$s->teacher_id][] = $s;
+            $teacherLoads[$s->professor_id][] = $s;
         }
         
         foreach ($teacherLoads as $teacherId => $sessions) {
@@ -412,10 +409,10 @@ class TimetableQualityAnalyzer
         
         $teacherDaySchedules = [];
         foreach ($this->sessions as $s) {
-            $key = "{$s->teacher_id}_{$s->day_id}";
+            $key = "{$s->professor_id}_{$s->day_id}";
             if (!isset($teacherDaySchedules[$key])) {
                 $teacherDaySchedules[$key] = [
-                    'teacher_id' => $s->teacher_id,
+                    'teacher_id' => $s->professor_id,
                     'day_id' => $s->day_id,
                     'timeslots' => [],
                 ];
