@@ -8,8 +8,8 @@ use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\StudentGroup;
 use App\Models\Semester;
-use App\Models\Subject;
-use App\Models\Teacher;
+use App\Models\Module;
+use App\Models\User;
 use App\Models\Timeslot;
 use App\Models\TimetableSession;
 use App\Services\SessionConflictChecker;
@@ -40,27 +40,37 @@ class SessionConflictCheckerTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create([
-            'teacher_id' => $teacher->id,
+        $teacher = User::create(['name' => 'Prof A', 'email' => 'profa@checker.test', 'role' => 'prof', 'password' => bcrypt('password')]);
+        $teacher2 = User::create(['name' => 'Prof B', 'email' => 'profb@checker.test', 'role' => 'prof', 'password' => bcrypt('password')]);
+        $subject = Module::create([
+            'program_id' => $program->id,
+            'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG',
-            'sessions_per_week' => 1,
+            'weekly_hours' => 2,
         ]);
+        DB::table('professor_module')->insert(['professor_id' => $teacher->id, 'module_id' => $subject->id]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
-        return compact('semester', 'teacher', 'subject', 'group', 'classroom', 'day', 'timeslot');
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $teacher->id,
+            'day_of_week' => 1,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
+        return compact('semester', 'subject', 'teacher', 'teacher2', 'group', 'classroom', 'day', 'timeslot');
     }
 
     public function test_teacher_conflict_is_rejected(): void
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -73,8 +83,8 @@ class SessionConflictCheckerTest extends TestCase
         try {
             $checker->validate([
                 'semester_id' => $data['semester']->id,
-                'subject_id' => $data['subject']->id,
-                'teacher_id' => $data['teacher']->id,
+                'module_id' => $data['subject']->id,
+                'professor_id' => $data['teacher']->id,
                 'classroom_id' => $data['classroom']->id,
                 'student_group_id' => $data['group']->id,
                 'day_id' => $data['day']->id,
@@ -82,8 +92,8 @@ class SessionConflictCheckerTest extends TestCase
             ]);
             $this->fail('Expected a validation exception for the teacher conflict.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('teacher_id', $exception->errors());
-            $this->assertStringContainsString('Conflit professeur', $exception->errors()['teacher_id'][0]);
+            $this->assertArrayHasKey('professor_id', $exception->errors());
+            $this->assertStringContainsString('Conflit : ce professeur', $exception->errors()['professor_id'][0]);
         }
     }
 
@@ -91,8 +101,8 @@ class SessionConflictCheckerTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -105,8 +115,8 @@ class SessionConflictCheckerTest extends TestCase
         try {
             $checker->validate([
                 'semester_id' => $data['semester']->id,
-                'subject_id' => $data['subject']->id,
-                'teacher_id' => $data['teacher']->id + 1,
+                'module_id' => $data['subject']->id,
+                'professor_id' => $data['teacher2']->id,
                 'classroom_id' => $data['classroom']->id,
                 'student_group_id' => $data['group']->id + 1,
                 'day_id' => $data['day']->id,
@@ -115,7 +125,7 @@ class SessionConflictCheckerTest extends TestCase
             $this->fail('Expected a validation exception for the classroom conflict.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('classroom_id', $exception->errors());
-            $this->assertStringContainsString('Conflit salle', $exception->errors()['classroom_id'][0]);
+            $this->assertStringContainsString('Conflit : ce salle', $exception->errors()['classroom_id'][0]);
         }
     }
 
@@ -123,8 +133,8 @@ class SessionConflictCheckerTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -137,8 +147,8 @@ class SessionConflictCheckerTest extends TestCase
         try {
             $checker->validate([
                 'semester_id' => $data['semester']->id,
-                'subject_id' => $data['subject']->id,
-                'teacher_id' => $data['teacher']->id + 1,
+                'module_id' => $data['subject']->id,
+                'professor_id' => $data['teacher2']->id,
                 'classroom_id' => $data['classroom']->id + 1,
                 'student_group_id' => $data['group']->id,
                 'day_id' => $data['day']->id,
@@ -147,7 +157,7 @@ class SessionConflictCheckerTest extends TestCase
             $this->fail('Expected a validation exception for the group conflict.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('student_group_id', $exception->errors());
-            $this->assertStringContainsString('Conflit groupe', $exception->errors()['student_group_id'][0]);
+            $this->assertStringContainsString('Conflit : ce groupe', $exception->errors()['student_group_id'][0]);
         }
     }
 
@@ -162,8 +172,8 @@ class SessionConflictCheckerTest extends TestCase
         try {
             $checker->validate([
                 'semester_id' => $data['semester']->id,
-                'subject_id' => $data['subject']->id,
-                'teacher_id' => $data['teacher']->id,
+                'module_id' => $data['subject']->id,
+                'professor_id' => $data['teacher']->id,
                 'classroom_id' => $smallClassroom->id,
                 'student_group_id' => $data['group']->id,
                 'day_id' => $data['day']->id,
@@ -172,13 +182,13 @@ class SessionConflictCheckerTest extends TestCase
             $this->fail('Expected a validation exception for insufficient classroom capacity.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('classroom_id', $exception->errors());
-            $this->assertStringContainsString('capacity', $exception->errors()['classroom_id'][0]);
+            $this->assertStringContainsString('La capacité', $exception->errors()['classroom_id'][0]);
         }
 
         $checker->validate([
             'semester_id' => $data['semester']->id,
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $largeClassroom->id,
             'student_group_id' => $data['group']->id,
             'day_id' => $data['day']->id,
@@ -191,8 +201,8 @@ class SessionConflictCheckerTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -205,8 +215,8 @@ class SessionConflictCheckerTest extends TestCase
         try {
             $checker->validate([
                 'semester_id' => $data['semester']->id,
-                'subject_id' => $data['subject']->id,
-                'teacher_id' => $data['teacher']->id + 1,
+                'module_id' => $data['subject']->id,
+                'professor_id' => $data['teacher2']->id,
                 'classroom_id' => $data['classroom']->id + 1,
                 'student_group_id' => $data['group']->id,
                 'day_id' => $data['day']->id,
@@ -214,8 +224,8 @@ class SessionConflictCheckerTest extends TestCase
             ]);
             $this->fail('Expected a validation exception for the duplicate session.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('subject_id', $exception->errors());
-            $this->assertStringContainsString('already scheduled', strtolower($exception->errors()['subject_id'][0]));
+            $this->assertArrayHasKey('student_group_id', $exception->errors());
+            $this->assertStringContainsString('déjà occupé dans ce créneau', $exception->errors()['student_group_id'][0]);
         }
     }
 
@@ -226,8 +236,8 @@ class SessionConflictCheckerTest extends TestCase
 
         $checker->validate([
             'semester_id' => $data['semester']->id,
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'day_id' => $data['day']->id,

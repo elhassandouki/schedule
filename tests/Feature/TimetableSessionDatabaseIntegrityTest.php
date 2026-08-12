@@ -4,13 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Department;
+use App\Models\Module;
 use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\Semester;
 use App\Models\StudentGroup;
-use App\Models\Subject;
-use App\Models\Teacher;
 use App\Models\Timeslot;
+use App\Models\User;
 use App\Models\TimetableSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -38,22 +38,25 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
-        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
+        $teacher = User::create(['name' => 'Prof A', 'email' => 'profa@int.test', 'role' => 'prof', 'password' => bcrypt('password')]);
+        $teacher2 = User::create(['name' => 'Prof B', 'email' => 'profb@int.test', 'role' => 'prof', 'password' => bcrypt('password')]);
+        $subject = Module::create(['program_id' => $program->id, 'semester_id' => $semester->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'weekly_hours' => 2]);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'student_count' => 30, 'capacity' => 30]);
+        $group2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'student_count' => 28, 'capacity' => 28]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
+        $classroom2 = Classroom::create(['name' => 'A102', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
-        return compact('semester', 'subject', 'teacher', 'group', 'classroom', 'day', 'timeslot');
+        return compact('semester', 'subject', 'teacher', 'teacher2', 'group', 'group2', 'classroom', 'classroom2', 'day', 'timeslot');
     }
 
     public function test_teacher_double_booking_is_prevented_by_unique_constraint(): void
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -63,10 +66,10 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
 
         $this->expectException(\Illuminate\Database\QueryException::class);
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
-            'classroom_id' => $data['classroom']->id + 1,
-            'student_group_id' => $data['group']->id + 1,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
+            'classroom_id' => $data['classroom2']->id,
+            'student_group_id' => $data['group2']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -77,8 +80,8 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -88,10 +91,10 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
 
         $this->expectException(\Illuminate\Database\QueryException::class);
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id + 1,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher2']->id,
             'classroom_id' => $data['classroom']->id,
-            'student_group_id' => $data['group']->id + 1,
+            'student_group_id' => $data['group2']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
@@ -102,8 +105,8 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -113,9 +116,9 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
 
         $this->expectException(\Illuminate\Database\QueryException::class);
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id + 1,
-            'classroom_id' => $data['classroom']->id + 1,
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher2']->id,
+            'classroom_id' => $data['classroom2']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
@@ -128,13 +131,19 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
         $data = $this->seedSemesterContext();
         $this->expectException(\Illuminate\Database\QueryException::class);
         TimetableSession::create([
-            'subject_id' => 999999,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => 999999,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
         ]);
+    }
+
+    public function test_legacy_columns_are_removed(): void
+    {
+        $this->assertFalse(DB::getSchemaBuilder()->hasColumn('timetable_sessions', 'subject_id'));
+        $this->assertFalse(DB::getSchemaBuilder()->hasColumn('timetable_sessions', 'teacher_id'));
     }
 }

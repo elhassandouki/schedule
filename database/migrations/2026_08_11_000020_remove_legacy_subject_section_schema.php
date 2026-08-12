@@ -12,8 +12,31 @@ return new class extends Migration {
         // module/professor. New schedules are generated from the clean model.
         DB::table('timetable_sessions')->whereNull('module_id')->delete();
 
-        foreach (['timetable_teacher_slot_unique', 'timetable_sessions_teacher_id_day_id_timeslot_id_index', 'timetable_sessions_subject_id_foreign', 'timetable_group_slot_unique', 'timetable_sessions_section_id_day_id_timeslot_id_index'] as $index) {
-            try { DB::statement("ALTER TABLE timetable_sessions DROP INDEX {$index}"); } catch (\Throwable) {}
+        $isSqlite = DB::getDriverName() === 'sqlite';
+        // On SQLite, dropColumn rewrites the whole table and fails if an
+        // in-flight foreign key references the column being dropped.
+        if ($isSqlite) {
+            Schema::table('timetable_sessions', function (Blueprint $table) {
+                $table->dropForeign(['subject_id']);
+                $table->dropForeign(['teacher_id']);
+                // timetable_sessions.section_id still references the sections
+                // table that is dropped below; remove the FK first.
+                if (Schema::hasColumn('timetable_sessions', 'section_id')) {
+                    $table->dropForeign(['section_id']);
+                }
+            });
+        }
+
+        foreach (['timetable_teacher_slot_unique', 'timetable_sessions_teacher_id_day_id_timeslot_id_index', 'timetable_sessions_subject_id_foreign', 'timetable_group_slot_unique', 'timetable_sessions_section_id_day_id_timeslot_id_index', 'timetable_semester_group_index'] as $index) {
+            try { Schema::table('timetable_sessions', fn (Blueprint $t) => $t->dropIndex($index)); } catch (\Throwable) {}
+            try { DB::statement("DROP INDEX IF EXISTS `{$index}`"); } catch (\Throwable) {}
+        }
+
+        // In tests (SQLite) the legacy section_id column must also go, otherwise
+        // it still carries a (now broken) FK towards the dropped sections table.
+        // This must run AFTER the indexes referencing it were removed.
+        if ($isSqlite && Schema::hasColumn('timetable_sessions', 'section_id')) {
+            Schema::table('timetable_sessions', fn (Blueprint $table) => $table->dropColumn('section_id'));
         }
 
         Schema::table('timetable_sessions', function (Blueprint $table) {

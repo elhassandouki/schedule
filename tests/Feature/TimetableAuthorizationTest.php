@@ -4,24 +4,22 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Department;
+use App\Models\Module;
 use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\StudentGroup;
 use App\Models\Semester;
-use App\Models\Subject;
-use App\Models\Teacher;
 use App\Models\Timeslot;
 use App\Models\TimetableSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TimetableAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
-
 
     private function seedSemester(): array
     {
@@ -41,14 +39,33 @@ class TimetableAuthorizationTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 1]);
+        $module = Module::create([
+            'program_id' => $program->id,
+            'semester_id' => $semester->id,
+            'name' => 'Algorithmes',
+            'code' => 'ALG-' . Str::random(4),
+            'weekly_hours' => 1,
+        ]);
+        $teacher = User::create([
+            'name' => 'Prof A',
+            'email' => 'profa_' . Str::random(6) . '@example.com',
+            'password' => bcrypt('secret'),
+            'role' => 'prof',
+        ]);
+        $teacher->modules()->attach($module->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $teacher->id,
+            'day_of_week' => 1,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
-        return compact('semester', 'teacher', 'subject', 'group', 'classroom', 'day', 'timeslot', 'department', 'program');
+        return compact('semester', 'teacher', 'module', 'group', 'classroom', 'day', 'timeslot', 'department', 'program');
     }
 
     public function test_admin_can_view_and_manage_timetable_sessions(): void
@@ -64,8 +81,8 @@ class TimetableAuthorizationTest extends TestCase
         // is registered in the default web group and cannot be removed per-class in Laravel 13).
         // Authorization is validated through the GET endpoints below.
         $response = $this->post(route('timetable.store'), [
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['teacher']->id,
+            'module_id' => $data['module']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -96,18 +113,16 @@ class TimetableAuthorizationTest extends TestCase
     public function test_prof_can_only_see_their_own_timetable_sessions(): void
     {
         $data = $this->seedSemester();
-        $professor = User::create(['name' => 'Prof Own', 'email' => 'prof-own@example.com', 'password' => bcrypt('secret'), 'role' => 'prof']);
-        $teacher = Teacher::create(['name' => 'Prof Own', 'user_id' => $professor->id]);
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $teacher->id,
+            'module_id' => $data['module']->id,
+            'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
         ]);
-        $this->actingAs($professor);
+        $this->actingAs($data['teacher']);
 
         $this->get(route('timetable.show', $data['semester']))->assertOk();
     }
@@ -115,11 +130,17 @@ class TimetableAuthorizationTest extends TestCase
     public function test_prof_with_no_sessions_receives_forbidden_and_cannot_see_another_professor_session(): void
     {
         $data = $this->seedSemester();
-        $professor = User::create(['name' => 'Prof Other', 'email' => 'prof-other@example.com', 'password' => bcrypt('secret'), 'role' => 'prof']);
-        $otherTeacher = Teacher::create(['name' => 'Other Prof']);
+        $professor = User::create(['name' => 'Prof Other', 'email' => 'prof-other-' . Str::random(6) . '@example.com', 'password' => bcrypt('secret'), 'role' => 'prof']);
+        $otherTeacher = User::create([
+            'name' => 'Other Prof',
+            'email' => 'otherprof_' . Str::random(6) . '@example.com',
+            'password' => bcrypt('secret'),
+            'role' => 'prof',
+        ]);
+        $otherTeacher->modules()->attach($data['module']->id);
         TimetableSession::create([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $otherTeacher->id,
+            'module_id' => $data['module']->id,
+            'professor_id' => $otherTeacher->id,
             'classroom_id' => $data['classroom']->id,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,

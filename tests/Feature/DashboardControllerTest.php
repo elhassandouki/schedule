@@ -4,17 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Department;
+use App\Models\Module;
 use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\Semester;
 use App\Models\StudentGroup;
-use App\Models\Subject;
-use App\Models\Teacher;
 use App\Models\Timeslot;
 use App\Models\TimetableSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
@@ -25,11 +25,10 @@ class DashboardControllerTest extends TestCase
     {
         $professor = User::create([
             'name' => 'Professeur Test',
-            'email' => 'prof@example.com',
+            'email' => 'prof_' . Str::random(6) . '@example.com',
             'password' => bcrypt('secret'),
             'role' => 'prof',
         ]);
-        $teacher = Teacher::create(['name' => 'Professeur Test', 'user_id' => $professor->id]);
 
         $department = Department::create(['name' => 'Informatique', 'code' => 'INFO']);
         $program = Program::create(['department_id' => $department->id, 'name' => 'Licence', 'code' => 'LIC']);
@@ -44,7 +43,21 @@ class DashboardControllerTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001']);
+        $module = Module::create([
+            'program_id' => $program->id,
+            'semester_id' => $semester->id,
+            'name' => 'Algorithmes',
+            'code' => 'ALG001',
+            'weekly_hours' => 2,
+        ]);
+        $professor->modules()->attach($module->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $professor->id,
+            'day_of_week' => 1,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
@@ -52,8 +65,8 @@ class DashboardControllerTest extends TestCase
 
         TimetableSession::create([
             'semester_id' => $semester->id,
-            'subject_id' => $subject->id,
-            'teacher_id' => $teacher->id,
+            'module_id' => $module->id,
+            'professor_id' => $professor->id,
             'classroom_id' => $classroom->id,
             'student_group_id' => $group->id,
             'day_id' => $day->id,

@@ -59,6 +59,10 @@ class UnifiedDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
+        // ════════════════════════════════════════════════════════════
+        // NOTE: dept1 (Informatique) is declared before users to allow
+        // the department chief to be linked to it. We update after.
+        // ════════════════════════════════════════════════════════════
         $chef_user = $this->insertOnce('users', ['email' => 'chef@school.local'], [
             'name' => 'Chef Département',
             'email' => 'chef@school.local',
@@ -88,6 +92,13 @@ class UnifiedDemoSeeder extends Seeder
         ]);
 
         // ════════════════════════════════════════════════════════════
+        // Link the department chief to Informatique (declared above).
+        // ════════════════════════════════════════════════════════════
+        if ($chef_user) {
+            DB::table('users')->where('id', $chef_user)->update(['department_id' => $dept1, 'updated_at' => $now]);
+        }
+
+        // ════════════════════════════════════════════════════════════
         // 3. PROGRAMS (Filières)
         // ════════════════════════════════════════════════════════════
         $prog1 = $this->insertOnce('programs', ['code' => 'LIC-INF'], [
@@ -102,6 +113,14 @@ class UnifiedDemoSeeder extends Seeder
             'department_id' => $dept1,
             'name' => 'Master IA',
             'code' => 'MASTER-IA',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $prog3 = $this->insertOnce('programs', ['code' => 'LIC-MATH'], [
+            'department_id' => $dept2,
+            'name' => 'Licence Mathématiques',
+            'code' => 'LIC-MATH',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -135,6 +154,15 @@ class UnifiedDemoSeeder extends Seeder
             'academic_year_id' => $academicYearId,
             'name' => 'Semestre 2',
             'number' => 2,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $sem2_2 = DB::table('semesters')->insertGetId([
+            'program_id' => $prog3,
+            'academic_year_id' => $academicYearId,
+            'name' => 'Semestre Maths 1',
+            'number' => 1,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -198,6 +226,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_1,
             'name' => 'Groupe A',
             'student_count' => 30,
+            'capacity' => 30,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -206,6 +235,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_1,
             'name' => 'Groupe B',
             'student_count' => 28,
+            'capacity' => 28,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -214,6 +244,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_2,
             'name' => 'Groupe Unique',
             'student_count' => 58,
+            'capacity' => 60,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -222,104 +253,42 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem2_1,
             'name' => 'Master Promo 2025',
             'student_count' => 20,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        // ════════════════════════════════════════════════════════════
-        // 7. TEACHERS (Academic Staff)
-        // ════════════════════════════════════════════════════════════
-        $prof1 = DB::table('teachers')->insertGetId([
-            'user_id' => $prof1_user,
-            'name' => 'Dr. Alice Martin',
-            'email' => 'alice@school.local',
-            'phone' => '+212612345678',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $prof2 = DB::table('teachers')->insertGetId([
-            'user_id' => $prof2_user,
-            'name' => 'Prof. Bob Chen',
-            'email' => 'bob@school.local',
-            'phone' => '+212687654321',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $prof3 = DB::table('teachers')->insertGetId([
-            'user_id' => $prof3_user,
-            'name' => 'Prof. Carol White',
-            'email' => 'carol@school.local',
-            'phone' => null,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        // ════════════════════════════════════════════════════════════
-        // 8. SUBJECTS (Module Instances per Semester)
-        // ════════════════════════════════════════════════════════════
-        $subj1 = DB::table('subjects')->insertGetId([
-            'semester_id' => $sem1_1,
-            'teacher_id' => $prof1,
-            'name' => 'Introduction Programmation',
-            'code' => 'INF101',
-            'sessions_per_week' => 2,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $subj2 = DB::table('subjects')->insertGetId([
-            'semester_id' => $sem1_1,
-            'teacher_id' => $prof2,
-            'name' => 'Mathématiques Discrètes',
-            'code' => 'INF102',
-            'sessions_per_week' => 2,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $subj3 = DB::table('subjects')->insertGetId([
-            'semester_id' => $sem1_2,
-            'teacher_id' => $prof1,
-            'name' => 'Structures de Données',
-            'code' => 'INF201',
-            'sessions_per_week' => 2,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $subj4 = DB::table('subjects')->insertGetId([
-            'semester_id' => $sem2_1,
-            'teacher_id' => $prof3,
-            'name' => 'Machine Learning Avancé',
-            'code' => 'MAI301',
-            'sessions_per_week' => 2,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        // ════════════════════════════════════════════════════════════
-        // 9. SECTIONS (Program Subdivisions for Student Groups)
-        // ════════════════════════════════════════════════════════════
-        $sec1 = DB::table('sections')->insertGetId([
-            'program_id' => $prog1,
-            'name' => 'L1 Informatique 2025',
-            'capacity' => 60,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        $sec2 = DB::table('sections')->insertGetId([
-            'program_id' => $prog2,
-            'name' => 'Master IA 2025',
             'capacity' => 20,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
 
         // ════════════════════════════════════════════════════════════
-        // 10. DAYS (Monday–Friday)
+        // 7. PROFESSOR ↔ MODULE ASSIGNMENTS (who teaches what)
+        // ════════════════════════════════════════════════════════════
+        // Professors are users with role 'prof' assigned to modules via the
+        // pivot table professor_module (the legacy teachers/subjects schema
+        // was removed).
+        $this->insertOnce('professor_module', ['professor_id' => $prof1_user, 'module_id' => $mod1], []);
+        $this->insertOnce('professor_module', ['professor_id' => $prof2_user, 'module_id' => $mod2], []);
+        $this->insertOnce('professor_module', ['professor_id' => $prof1_user, 'module_id' => $mod3], []);
+        $this->insertOnce('professor_module', ['professor_id' => $prof3_user, 'module_id' => $mod4], []);
+
+        // ════════════════════════════════════════════════════════════
+        // 7b. PROFESSOR AVAILABILITIES (default: available Mon–Fri 08:00–17:00)
+        // ════════════════════════════════════════════════════════════
+        foreach ([$prof1_user, $prof2_user, $prof3_user] as $pid) {
+            for ($d = 1; $d <= 5; $d++) {
+                $this->insertOnce('professor_availabilities', [
+                    'professor_id' => $pid,
+                    'day_of_week' => $d,
+                ], [
+                    'start_minute' => 8 * 60,
+                    'end_minute' => 17 * 60,
+                    'available' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // 8. DAYS (Monday–Friday)
         // ════════════════════════════════════════════════════════════
         $dayMon = DB::table('days')->insertGetId([
             'name' => 'Monday',
@@ -439,7 +408,7 @@ class UnifiedDemoSeeder extends Seeder
         $this->command->line('  - 2 departments, 2 programs, 3 semesters');
         $this->command->line('  - 4 modules, 4 student groups');
         $this->command->line('  - 5 users (1 admin, 3 profs, 1 chef)');
-        $this->command->line('  - 3 teachers, 4 subjects, 2 sections');
+        $this->command->line('  - 3 professor availabilities (Mon–Fri 08:00–17:00)');
         $this->command->line('  - 5 days, 4 timeslots, 4 classrooms');
         $this->command->line('  - 0 timetable sessions (ready for auto-generation)');
         $this->command->line('');

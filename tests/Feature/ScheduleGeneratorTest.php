@@ -4,17 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Department;
+use App\Models\Module;
 use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\StudentGroup;
 use App\Models\Semester;
-use App\Models\Subject;
-use App\Models\Teacher;
 use App\Models\Timeslot;
 use App\Models\User;
 use App\Services\AutoGenerateTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class LegacyScheduleGeneratorTest extends TestCase
@@ -25,7 +25,7 @@ class LegacyScheduleGeneratorTest extends TestCase
     {
         $professor = User::create([
             'name' => 'Prof Test',
-            'email' => 'prof@example.com',
+            'email' => 'prof_' . Str::random(6) . '@example.com',
             'password' => bcrypt('secret'),
             'role' => 'prof',
         ]);
@@ -47,8 +47,21 @@ class LegacyScheduleGeneratorTest extends TestCase
             'number' => 1,
         ]);
 
-        $teacher = Teacher::create(['name' => 'Prof Test', 'user_id' => $professor->id]);
-        Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG001', 'sessions_per_week' => 1]);
+        $module = Module::create([
+            'program_id' => $program->id,
+            'semester_id' => $semester->id,
+            'name' => 'Algorithmes',
+            'code' => 'ALG001',
+            'weekly_hours' => 1,
+        ]);
+        $professor->modules()->attach($module->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $professor->id,
+            'day_of_week' => 1,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
         StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         Classroom::create(['name' => 'A101', 'capacity' => 50, 'type' => 'classroom']);
         SchoolDay::create(['name' => 'Monday', 'position' => 1]);
@@ -60,6 +73,5 @@ class LegacyScheduleGeneratorTest extends TestCase
 
         $this->assertTrue($report['success']);
         $this->assertSame(1, DB::table('timetable_sessions')->where('semester_id', $semester->id)->count());
-        $this->assertSame(0, DB::table('timetable_entries')->count());
     }
 }

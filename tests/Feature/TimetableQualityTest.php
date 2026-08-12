@@ -118,17 +118,8 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('No professor user found');
         }
         
-        $teacher = DB::table('teachers')
-            ->where('user_id', $prof->id)
-            ->first();
-        
-        if (!$teacher) {
-            $this->markTestSkipped('Professor has no teacher record');
-        }
-        
         $semester = DB::table('timetable_sessions')
-            ->join('subjects', 'subjects.id', '=', 'timetable_sessions.subject_id')
-            ->where('subjects.teacher_id', $teacher->id)
+            ->where('professor_id', $prof->id)
             ->value('timetable_sessions.semester_id');
         
         if (!$semester) {
@@ -153,16 +144,12 @@ class TimetableQualityTest extends TestCase
             $this->markTestSkipped('No professor user found');
         }
         
-        $teacher = DB::table('teachers')
-            ->where('user_id', $prof->id)
-            ->first();
-        
         // Find a semester they don't teach
         $semester = DB::table('semesters')
-            ->whereNotIn('id', function ($query) use ($teacher) {
+            ->whereNotIn('id', function ($query) use ($prof) {
                 $query->select('timetable_sessions.semester_id')
                     ->from('timetable_sessions')
-                    ->where('teacher_id', $teacher->id);
+                    ->where('professor_id', $prof->id);
             })
             ->first();
         

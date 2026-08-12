@@ -4,16 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Classroom;
 use App\Models\Department;
+use App\Models\Module;
 use App\Models\Program;
 use App\Models\SchoolDay;
 use App\Models\Semester;
 use App\Models\StudentGroup;
-use App\Models\Subject;
-use App\Models\Teacher;
 use App\Models\Timeslot;
+use App\Models\User;
 use App\Services\AutoGenerateTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AutoGenerateTimetableTest extends TestCase
@@ -38,25 +39,54 @@ class AutoGenerateTimetableTest extends TestCase
             'name' => 'S1',
             'number' => 1,
         ]);
-        $teacher = Teacher::create(['name' => 'Prof A']);
-        $subject = Subject::create(['teacher_id' => $teacher->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'sessions_per_week' => 2]);
-        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
-        Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
-        $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
-        $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
-        $timeslot2 = Timeslot::create(['name' => '10:00-12:00', 'starts_at' => '10:00', 'ends_at' => '12:00', 'position' => 2]);
 
-        return compact('semester', 'subject', 'group', 'day', 'timeslot', 'timeslot2');
+        $module = Module::create([
+            'program_id' => $program->id,
+            'semester_id' => $semester->id,
+            'name' => 'Algorithmes',
+            'code' => 'ALG',
+            'weekly_hours' => 2,
+        ]);
+        $professor = User::create([
+            'name' => 'Prof A',
+            'email' => 'profa_' . Str::random(6) . '@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'prof',
+        ]);
+        $professor->modules()->attach($module->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $professor->id,
+            'day_of_week' => 1,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $professor->id,
+            'day_of_week' => 2,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
+
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
+        $group2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'capacity' => 30]);
+        Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
+        SchoolDay::create(['name' => 'Monday', 'position' => 1]);
+        SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);
+        Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
+        Timeslot::create(['name' => '10:00-12:00', 'starts_at' => '10:00', 'ends_at' => '12:00', 'position' => 2]);
+
+        return compact('semester', 'module', 'professor', 'group');
     }
 
-    public function test_generation_creates_timetable_sessions_and_not_timetable_entries(): void
+    public function test_generation_creates_timetable_sessions_for_the_selected_semester(): void
     {
         $data = $this->seedSemesterContext();
         $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
 
         $this->assertTrue($report['success']);
         $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
-        $this->assertSame(0, DB::table('timetable_entries')->count());
         $this->assertSame(2, $report['sessions_generated']);
     }
 
@@ -69,11 +99,24 @@ class AutoGenerateTimetableTest extends TestCase
             'name' => 'S2',
             'number' => 2,
         ]);
-        $otherSubject = Subject::create(['teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
+        $otherModule = Module::create([
+            'program_id' => $data['semester']->program_id,
+            'code' => 'PHY',
+            'name' => 'Physique',
+            'weekly_hours' => 1,
+        ]);
+        $data['professor']->modules()->attach($otherModule->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $data['professor']->id,
+            'day_of_week' => 3,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
         $otherGroup = StudentGroup::create(['semester_id' => $otherSemester->id, 'name' => 'G2', 'capacity' => 30]);
         DB::table('timetable_sessions')->insert([
-            'subject_id' => $otherSubject->id,
-            'teacher_id' => $data['subject']->teacher_id,
+            'module_id' => $otherModule->id,
+            'professor_id' => $data['professor']->id,
             'classroom_id' => 1,
             'student_group_id' => $otherGroup->id,
             'semester_id' => $otherSemester->id,
@@ -93,10 +136,24 @@ class AutoGenerateTimetableTest extends TestCase
     public function test_generation_reports_skips_and_conflicts(): void
     {
         $data = $this->seedSemesterContext();
-        $otherSubject = Subject::create(['teacher_id' => $data['subject']->teacher_id, 'name' => 'Physique', 'code' => 'PHY', 'sessions_per_week' => 1]);
+        $otherModule = Module::create([
+            'program_id' => $data['semester']->program_id,
+            'semester_id' => $data['semester']->id,
+            'name' => 'Physique',
+            'code' => 'PHY',
+            'weekly_hours' => 1,
+        ]);
+        $data['professor']->modules()->attach($otherModule->id);
+        DB::table('professor_availabilities')->insert([
+            'professor_id' => $data['professor']->id,
+            'day_of_week' => 3,
+            'start_minute' => 480,
+            'end_minute' => 1020,
+            'available' => true,
+        ]);
         DB::table('timetable_sessions')->insert([
-            'subject_id' => $data['subject']->id,
-            'teacher_id' => $data['subject']->teacher_id,
+            'module_id' => $data['module']->id,
+            'professor_id' => $data['professor']->id,
             'classroom_id' => 1,
             'student_group_id' => $data['group']->id,
             'semester_id' => $data['semester']->id,
@@ -109,7 +166,7 @@ class AutoGenerateTimetableTest extends TestCase
         $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
 
         $this->assertGreaterThanOrEqual(0, $report['sessions_skipped']);
-        $this->assertIsArray($report['generated_per_subject'] ?? []);
+        $this->assertIsArray($report['generated_per_module'] ?? $report['generated_per_subject'] ?? []);
         $this->assertGreaterThanOrEqual(1, $report['sessions_generated']);
     }
 }

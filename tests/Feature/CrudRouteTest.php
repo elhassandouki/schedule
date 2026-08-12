@@ -36,8 +36,7 @@ class CrudRouteTest extends TestCase
     public function test_all_crud_resources_respond_ok_for_admin(): void
     {
         $resources = ['annees','departements','filieres','semestres','modules','salles',
-                      'professeurs','affectations-modules','teachers','subjects',
-                      'sections','students','timeslots','days'];
+                      'professeurs','affectations-modules','groupes','timeslots','days'];
         $this->actingAs($this->admin());
         foreach ($resources as $res) {
             $response = $this->get(route('crud.index', $res));
