@@ -18,16 +18,13 @@ class CrudController extends Controller
         'salles' => ['table'=>'classrooms','title'=>'Salles','fields'=>['name'=>'Nom','capacity'=>'Capacité','type'=>'Type'], 'types'=>['capacity'=>'number','type'=>'select'], 'options'=>['type'=>['cours'=>'Cours','td'=>'TD','tp'=>'TP','mixte'=>'Mixte']]],
         'professeurs' => ['table'=>'users','title'=>'Utilisateurs et professeurs','fields'=>['name'=>'Nom complet','email'=>'Email','password'=>'Mot de passe','role'=>'Rôle','max_weekly_hours'=>'Maximum heures / semaine (prof)'], 'types'=>['password'=>'password','role'=>'select','max_weekly_hours'=>'number'], 'options'=>['role'=>array_combine(\App\Models\User::ROLES, \App\Models\User::ROLES)]],
         'affectations-modules' => ['table'=>'professor_module','title'=>'Modules autorisés par professeur','fields'=>['professor_id'=>'Professeur','module_id'=>'Module'], 'selects'=>['professor_id'=>['users','name'],'module_id'=>['modules','name']]],
-        'teachers' => ['table'=>'teachers','title'=>'Enseignants','fields'=>['name'=>'Nom','email'=>'Email','phone'=>'Téléphone']],
+        'disponibilites-profs' => ['table'=>'professor_availabilities','title'=>'Disponibilités des professeurs','fields'=>['professor_id'=>'Professeur','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','available'=>'Disponible'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','available'=>'checkbox'], 'selects'=>['professor_id'=>['users','name']]],
+        'conditions-groupes' => ['table'=>'group_study_conditions','title'=>'Conditions d’étude des groupes','fields'=>['student_group_id'=>'Groupe','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','max_daily_minutes'=>'Maximum minutes / jour','max_gap_minutes'=>'Maximum pause (minutes)'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','max_daily_minutes'=>'number','max_gap_minutes'=>'number'], 'selects'=>['student_group_id'=>['student_groups','name']]],
         'groupes' => ['table'=>'student_groups','title'=>'Groupes d’étudiants','fields'=>['semester_id'=>'Semestre','name'=>'Nom','capacity'=>'Capacité'], 'types'=>['capacity'=>'number'], 'selects'=>['semester_id'=>['semesters','name']]],
-        'subjects' => ['table'=>'subjects','title'=>'Matières','fields'=>['semester_id'=>'Semestre','teacher_id'=>'Enseignant','name'=>'Nom','code'=>'Code'], 'selects'=>['semester_id'=>['semesters','name'],'teacher_id'=>['teachers','name']]],
-        'sections' => ['table'=>'sections','title'=>'Groupes','fields'=>['program_id'=>'Filière','name'=>'Nom','capacity'=>'Capacité'], 'types'=>['capacity'=>'number'], 'selects'=>['program_id'=>['programs','name']]],
-        'students' => ['table'=>'students','title'=>'Étudiants','fields'=>['section_id'=>'Groupe','name'=>'Nom','email'=>'Email'], 'selects'=>['section_id'=>['sections','name']]],
         'timeslots' => ['table'=>'timeslots','title'=>'Créneaux horaires','fields'=>['name'=>'Libellé','starts_at'=>'Heure début','ends_at'=>'Heure fin','position'=>'Ordre'], 'types'=>['starts_at'=>'time','ends_at'=>'time','position'=>'number']],
         'days' => ['table'=>'days','title'=>'Jours de l\'école','fields'=>['name'=>'Nom','position'=>'Ordre'], 'types'=>['position'=>'number']],
     ]; }
     private function resource(string $key): array {
-        abort_if(in_array($key, ['subjects', 'sections', 'teachers', 'students'], true), 404);
         if ($key === 'groupes') {
             return [
                 'table' => 'student_groups', 'title' => 'Groupes d’étudiants',
@@ -65,16 +62,8 @@ class CrudController extends Controller
     private function choices(array $meta): array { $all=[]; foreach($meta['selects']??[] as $field=>[$table,$label]) $all[$field]=DB::table($table)->orderBy($label)->pluck($label,'id'); return $all; }
     private function validateProfessorModule(array $meta, array $data): void { if ($meta['table'] === 'teaching_sessions') app(ProfessorModuleEligibility::class)->validateTeachingSession($data); }
     private function validated(Request $request,array $meta,?int $id=null): array { $rules=[]; foreach($meta['fields'] as $field=>$label) { $rules[$field]=($field==='password'&&$id?'nullable':'required').'|max:255'; if(in_array($meta['types'][$field]??'', ['number']))$rules[$field]='required|integer|min:0'; if(in_array($field, ['max_weekly_hours','max_daily_minutes'], true))$rules[$field]='nullable|integer|min:0'; if($field==='email')$rules[$field]='required|email|unique:users,email'.($id?','.$id:''); if(isset($meta['selects'][$field]))$rules[$field]='required|integer'; }
-        if (in_array($meta['table'], ['teachers','students'], true) && array_key_exists('email', $meta['fields'])) $rules['email']='nullable|email|unique:'.$meta['table'].',email'.($id?','.$id:'');
-        $data=Validator::make($request->all(),$rules)->validate();
-        if ($meta['table'] === 'student_groups') {
-            $semesterProgramId = DB::table('semesters')->where('id', $data['semester_id'])->value('program_id');
-            if ((int) $semesterProgramId !== (int) $data['program_id']) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['semester_id' => 'Le semestre doit appartenir à la filière choisie.']);
-            }
-        }
+                $data=Validator::make($request->all(),$rules)->validate();
         // Subjects are no longer tied directly to a semester. The form still
         // includes this legacy field while existing installations transition.
-        if ($meta['table'] === 'subjects') unset($data['semester_id']);
         foreach($meta['types']??[] as $field=>$type) if($type==='checkbox')$data[$field]=$request->boolean($field); if($meta['table']==='users'){ if(empty($data['password']))unset($data['password']); else $data['password']=Hash::make($data['password']); } return $data; }
 }

@@ -270,6 +270,26 @@ class UnifiedDemoSeeder extends Seeder
         $this->insertOnce('professor_module', ['professor_id' => $prof3_user, 'module_id' => $mod4], []);
 
         // ════════════════════════════════════════════════════════════
+        // 7c. GROUP STUDY CONDITIONS (default: available Mon–Fri 08:00–17:00,
+        //     max 6 hours/day, max 60 minutes gap)
+        // ════════════════════════════════════════════════════════════
+        foreach ([$sg1_1, $sg1_2, $sg2_1, $sg3_1] as $gid) {
+            for ($d = 1; $d <= 5; $d++) {
+                $this->insertOnce('group_study_conditions', [
+                    'student_group_id' => $gid,
+                    'day_of_week' => $d,
+                ], [
+                    'start_minute' => 8 * 60,
+                    'end_minute' => 17 * 60,
+                    'max_daily_minutes' => 360,
+                    'max_gap_minutes' => 60,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════
         // 7b. PROFESSOR AVAILABILITIES (default: available Mon–Fri 08:00–17:00)
         // ════════════════════════════════════════════════════════════
         foreach ([$prof1_user, $prof2_user, $prof3_user] as $pid) {

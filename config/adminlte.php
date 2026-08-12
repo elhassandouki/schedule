@@ -377,6 +377,16 @@ return [
                     'icon' => 'fas fa-book-open',
                 ],
                 [
+                    'text' => 'Disponibilités des profs',
+                    'url' => 'gestion/disponibilites-profs',
+                    'icon' => 'fas fa-calendar-check',
+                ],
+                [
+                    'text' => 'Conditions d2019étude (groupes)',
+                    'url' => 'gestion/conditions-groupes',
+                    'icon' => 'fas fa-clipboard-list',
+                ],
+                [
                     'text' => 'Salles',
                     'url' => 'gestion/salles',
                     'icon' => 'fas fa-door-open',
@@ -390,16 +400,6 @@ return [
                     'text' => 'Enseignants',
                     'url' => 'gestion/professeurs',
                     'icon' => 'fas fa-chalkboard-teacher',
-                ],
-                [
-                    'text' => 'Étudiants',
-                    'url' => 'gestion/groupes',
-                    'icon' => 'fas fa-user-graduate',
-                ],
-                [
-                    'text' => 'Matières',
-                    'url' => 'gestion/modules',
-                    'icon' => 'fas fa-book',
                 ],
             ],
         ],

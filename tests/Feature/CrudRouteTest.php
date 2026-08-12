@@ -36,11 +36,14 @@ class CrudRouteTest extends TestCase
     public function test_all_crud_resources_respond_ok_for_admin(): void
     {
         $resources = ['annees','departements','filieres','semestres','modules','salles',
-                      'professeurs','affectations-modules','groupes','timeslots','days'];
+                      'professeurs','affectations-modules','disponibilites-profs','conditions-groupes','groupes','timeslots','days'];
         $this->actingAs($this->admin());
         foreach ($resources as $res) {
             $response = $this->get(route('crud.index', $res));
-            $response->assertOk();
+            if (!$response->isOk()) {
+                fwrite(STDERR, "FAIL: $res => {$response->getStatusCode()} " . substr(strip_tags($response->getContent()), 0, 300) . "\n");
+                $response->assertOk();
+            }
         }
         $this->assertTrue(true);
     }
@@ -60,4 +63,3 @@ class CrudRouteTest extends TestCase
         $this->get(route('crud.index', 'departements'))->assertStatus(403);
     }
 }
-

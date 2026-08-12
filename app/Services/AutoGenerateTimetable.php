@@ -90,9 +90,12 @@ class AutoGenerateTimetable
         if (!$condition) return true;
         $start = $this->minutes($slot->starts_at); $end = $this->minutes($slot->ends_at);
         if ($condition->start_minute > $start || $condition->end_minute < $end) return false;
+        $minutesExpr = DB::getDriverName() === 'sqlite'
+            ? 'COALESCE(SUM(ROUND((julianday(t.ends_at) - julianday(t.starts_at)) * 1440)), 0)'
+            : 'COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at)) / 60), 0)';
         $scheduledMinutes = DB::table('timetable_sessions as ts')->join('timeslots as t', 't.id', '=', 'ts.timeslot_id')
             ->where('ts.student_group_id', $groupId)->where('ts.semester_id', $semesterId)->where('ts.day_id', $dayId)
-            ->selectRaw('COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at)) / 60), 0) as total')->value('total');
+            ->selectRaw("$minutesExpr as total")->value('total');
         return ((int) $scheduledMinutes + $end - $start) <= $condition->max_daily_minutes;
     }
 
