@@ -65,4 +65,41 @@ class ProfessorController extends Controller
         if (!empty($data['password'])) $user['password'] = Hash::make($data['password']);
         return ['user' => $user, 'module_ids' => $data['module_ids'] ?? []];
     }
+
+    public function availabilities(User $professor)
+    {
+        abort_unless($professor->role === 'prof', 404);
+        $rows = \Illuminate\Support\Facades\DB::table('professor_availabilities')
+            ->where('professor_id', $professor->id)->orderBy('day_of_week')->get();
+        $defined = $rows->isNotEmpty();
+        return view('professors.availabilities', compact('professor', 'rows', 'defined'));
+    }
+
+    public function updateAvailabilities(Request $request, User $professor)
+    {
+        abort_unless($professor->role === 'prof', 404);
+        $data = $request->validate([
+            'day_of_week' => ['required', 'integer', 'min:1', 'max:7'],
+            'start_minute' => ['required', 'integer', 'min:0', 'max:1439'],
+            'end_minute' => ['required', 'integer', 'min:0', 'max:1439'],
+            'available' => ['nullable', 'boolean'],
+        ]);
+        $data['available'] = !empty($data['available']);
+        if ($data['end_minute'] <= $data['start_minute']) {
+            return redirect()->back()->with('error', "L'heure de fin doit être après l'heure de début.");
+        }
+        \Illuminate\Support\Facades\DB::table('professor_availabilities')->updateOrInsert(
+            ['professor_id' => $professor->id, 'day_of_week' => $data['day_of_week']],
+            $data + ['created_at' => now(), 'updated_at' => now()],
+        );
+        return redirect()->route('professors.availabilities', $professor)->with('success', 'Disponibilité enregistrée.');
+    }
+
+    public function deleteAvailability(User $professor, $availabilityId)
+    {
+        abort_unless($professor->role === 'prof', 404);
+        \Illuminate\Support\Facades\DB::table('professor_availabilities')
+            ->where('id', $availabilityId)->where('professor_id', $professor->id)->delete();
+        return redirect()->route('professors.availabilities', $professor)->with('success', 'Disponibilité supprimée.');
+    }
 }

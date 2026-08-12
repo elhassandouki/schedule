@@ -66,4 +66,44 @@ class CrudController extends Controller
         // Subjects are no longer tied directly to a semester. The form still
         // includes this legacy field while existing installations transition.
         foreach($meta['types']??[] as $field=>$type) if($type==='checkbox')$data[$field]=$request->boolean($field); if($meta['table']==='users'){ if(empty($data['password']))unset($data['password']); else $data['password']=Hash::make($data['password']); } return $data; }
+
+    public function showGroupConditions(Request $request, string $resource)
+    {
+        if ($resource !== 'groupes') abort(404);
+        $groupId = (int) $request->route('id');
+        $group = \DB::table('student_groups')->find($groupId);
+        if (!$group) abort(404);
+        $rows = \DB::table('group_study_conditions')->where('student_group_id', $group->id)->orderBy('day_of_week')->get();
+        return view('crud.group-conditions', compact('group', 'rows'));
+    }
+
+    public function storeGroupCondition(Request $request, string $resource)
+    {
+        if ($resource !== 'groupes') abort(404);
+        $groupId = (int) $request->route('id');
+        $group = \DB::table('student_groups')->find($groupId);
+        if (!$group) abort(404);
+        $data = $request->validate([
+            'day_of_week' => ['required', 'integer', 'min:1', 'max:7'],
+            'start_minute' => ['required', 'integer', 'min:0', 'max:1439'],
+            'end_minute' => ['required', 'integer', 'min:0', 'max:1439'],
+            'max_daily_minutes' => ['required', 'integer', 'min:0', 'max:1440'],
+        ]);
+        if ($data['end_minute'] <= $data['start_minute']) {
+            return redirect()->back()->with('error', "L'heure de fin doit être après l'heure de début.");
+        }
+        \DB::table('group_study_conditions')->updateOrInsert(
+            ['student_group_id' => $groupId, 'day_of_week' => $data['day_of_week']],
+            $data + ['created_at' => now(), 'updated_at' => now()],
+        );
+        return redirect()->route('crud.group-conditions', ['groupes', $groupId])->with('success', 'Condition enregistrée.');
+    }
+
+    public function destroyGroupCondition(Request $request, string $resource, int $conditionId)
+    {
+        if ($resource !== 'groupes') abort(404);
+        $groupId = (int) $request->route('id');
+        \DB::table('group_study_conditions')->where('id', $conditionId)->where('student_group_id', $groupId)->delete();
+        return redirect()->route('crud.group-conditions', ['groupes', $groupId])->with('success', 'Condition supprimée.');
+    }
 }

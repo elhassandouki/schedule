@@ -382,7 +382,7 @@ return [
                     'icon' => 'fas fa-calendar-check',
                 ],
                 [
-                    'text' => 'Conditions d2019étude (groupes)',
+                    'text' => "Conditions d’étude (groupes)",
                     'url' => 'gestion/conditions-groupes',
                     'icon' => 'fas fa-clipboard-list',
                 ],

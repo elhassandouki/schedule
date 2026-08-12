@@ -20,6 +20,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/gestion/professeurs', [ProfessorController::class, 'index'])->name('professors.index');
         Route::get('/gestion/professeurs/ajouter', [ProfessorController::class, 'create'])->name('professors.create');
         Route::post('/gestion/professeurs', [ProfessorController::class, 'store'])->name('professors.store');
+                Route::get('/gestion/professeurs/{professor}/disponibilites', [ProfessorController::class, 'availabilities'])->name('professors.availabilities');
+        Route::post('/gestion/professeurs/{professor}/disponibilites', [ProfessorController::class, 'updateAvailabilities'])->name('professors.availabilities.update');
+        Route::delete('/gestion/professeurs/{professor}/disponibilites/{availability}', [ProfessorController::class, 'deleteAvailability'])->name('professors.availabilities.destroy');
         Route::get('/gestion/professeurs/{professor}/modifier', [ProfessorController::class, 'edit'])->name('professors.edit');
         Route::put('/gestion/professeurs/{professor}', [ProfessorController::class, 'update'])->name('professors.update');
         Route::resource('timetable/sessions', TimetableSessionController::class)
@@ -29,6 +32,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/gestion/{resource}', [CrudController::class, 'index'])->name('crud.index');
         Route::get('/gestion/{resource}/ajouter', [CrudController::class, 'create'])->name('crud.create');
         Route::post('/gestion/{resource}', [CrudController::class, 'store'])->name('crud.store');
+                Route::get('/gestion/{resource}/{id}/conditions', [CrudController::class, 'showGroupConditions'])->name('crud.group-conditions');
+        Route::post('/gestion/{resource}/{id}/conditions', [CrudController::class, 'storeGroupCondition'])->name('crud.group-conditions.store');
+        Route::delete('/gestion/{resource}/{id}/conditions/{condition}', [CrudController::class, 'destroyGroupCondition'])->name('crud.group-conditions.destroy');
         Route::get('/gestion/{resource}/{id}/modifier', [CrudController::class, 'edit'])->name('crud.edit');
         Route::put('/gestion/{resource}/{id}', [CrudController::class, 'update'])->name('crud.update');
         Route::delete('/gestion/{resource}/{id}', [CrudController::class, 'destroy'])->name('crud.destroy');

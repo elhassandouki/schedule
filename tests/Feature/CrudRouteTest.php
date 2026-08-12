@@ -41,7 +41,7 @@ class CrudRouteTest extends TestCase
         foreach ($resources as $res) {
             $response = $this->get(route('crud.index', $res));
             if (!$response->isOk()) {
-                fwrite(STDERR, "FAIL: $res => {$response->getStatusCode()} " . substr(strip_tags($response->getContent()), 0, 300) . "\n");
+                fwrite(STDERR, "FAIL: $res => {$response->getStatusCode()} " . str_replace(["\n","  "], "", substr(strip_tags($response->getContent()), strpos($response->getContent(), "exception") > 0 ? strpos($response->getContent(), "exception")-200 : 0, 800)) . "\n");
                 $response->assertOk();
             }
         }

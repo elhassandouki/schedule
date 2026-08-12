@@ -78,16 +78,24 @@ class AutoGenerateTimetable
     {
         $availability = DB::table('professor_availabilities')->where('professor_id', $professorId)
             ->where('day_of_week', $dayOfWeek)->get();
-        if ($availability->isEmpty()) return true;
         $start = $this->minutes($slot->starts_at); $end = $this->minutes($slot->ends_at);
-        return $availability->contains(fn ($row) => $row->available && $row->start_minute <= $start && $row->end_minute >= $end);
+        if ($availability->isNotEmpty()) {
+            return $availability->contains(fn ($row) => $row->available && $row->start_minute <= $start && $row->end_minute >= $end);
+        }
+        // Whitelist : si le professeur a défini des disponibilités pour d'autres jours,
+        // les jours sans déclaration sont considérés non disponibles.
+        return !DB::table('professor_availabilities')->where('professor_id', $professorId)->exists();
     }
 
     private function groupCanStudy(int $groupId, int $dayOfWeek, int $dayId, object $slot, int $semesterId): bool
     {
         $condition = DB::table('group_study_conditions')->where('student_group_id', $groupId)
             ->where('day_of_week', $dayOfWeek)->first();
-        if (!$condition) return true;
+        if (!$condition) {
+            // Whitelist : si le groupe a défini des conditions pour d'autres jours,
+            // les jours sans déclaration sont considérés non disponibles.
+            return !DB::table('group_study_conditions')->where('student_group_id', $groupId)->exists();
+        }
         $start = $this->minutes($slot->starts_at); $end = $this->minutes($slot->ends_at);
         if ($condition->start_minute > $start || $condition->end_minute < $end) return false;
         $minutesExpr = DB::getDriverName() === 'sqlite'
