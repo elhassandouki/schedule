@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role', 'department_id', 'program_id', 'max_weekly_hours'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     public const ROLES = ['super_admin', 'sous_admin', 'chef_departement', 'chef_filiere', 'prof'];
 
@@ -28,6 +29,18 @@ class User extends Authenticatable
     public function modules(): BelongsToMany
     {
         return $this->belongsToMany(Module::class, 'professor_module', 'professor_id')->withTimestamps();
+    }
+
+    /**
+     * Synchroniser le rôle spatie avec le champ `role` du modèle.
+     * Appeler après chaque création/mise à jour d'utilisateur pour que le
+     * système de permissions reste cohérent avec la colonne legacy `role`.
+     */
+    public function syncSpatieRole(): void
+    {
+        if (in_array($this->role, self::ROLES, true)) {
+            $this->assignRole($this->role);
+        }
     }
 
     /**

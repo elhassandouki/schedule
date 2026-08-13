@@ -15,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Console\Commands\AnalyzeTimetableQuality::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['role' => \App\Http\Middleware\EnsureRole::class]);
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureRole::class,
+            'permission' => \App\Http\Middleware\EnsurePermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

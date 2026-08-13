@@ -346,51 +346,61 @@ return [
                     'text' => 'Années universitaires',
                     'url' => 'gestion/annees',
                     'icon' => 'fas fa-calendar-check',
+                    'can' => 'view semestres',
                 ],
                 [
                     'text' => 'Jours de la semaine',
                     'url' => 'gestion/days',
                     'icon' => 'fas fa-calendar-day',
+                    'can' => 'view semestres',
                 ],
                 [
                     'text' => 'Créneaux horaires',
                     'url' => 'gestion/timeslots',
                     'icon' => 'fas fa-clock',
+                    'can' => 'view semestres',
                 ],
                 [
                     'text' => 'Départements',
                     'url' => 'gestion/departements',
                     'icon' => 'fas fa-building',
+                    'can' => 'view departements',
                 ],
                 [
                     'text' => 'Filières (programmes)',
                     'url' => 'gestion/filieres',
                     'icon' => 'fas fa-graduation-cap',
+                    'can' => 'view filieres',
                 ],
                 [
                     'text' => 'Semestres',
                     'url' => 'gestion/semestres',
                     'icon' => 'fas fa-layer-group',
+                    'can' => 'view semestres',
                 ],
                 [
                     'text' => 'Modules',
                     'url' => 'gestion/modules',
                     'icon' => 'fas fa-book-open',
+                    'can' => 'view modules',
                 ],
                 [
                     'text' => 'Salles',
                     'url' => 'gestion/salles',
                     'icon' => 'fas fa-door-open',
+                    'can' => 'view salles',
                 ],
                 [
                     'text' => 'Groupes d\'étudiants',
                     'url' => 'gestion/groupes',
                     'icon' => 'fas fa-users',
+                    'can' => 'view groupes',
                 ],
                 [
                     'text' => 'Enseignants',
                     'url' => 'gestion/professeurs',
                     'icon' => 'fas fa-chalkboard-teacher',
+                    'can' => 'view professeurs',
                 ],
             ],
         ],
@@ -398,10 +408,18 @@ return [
         // Users & roles
         ['header' => 'UTILISATEURS'],
         [
-            'text' => 'Utilisateurs & professeurs',
+            'text' => 'Utilisateurs & rôles',
+            'url' => 'gestion/utilisateurs',
+            'icon' => 'fas fa-fw fa-users-cog',
+            'active' => ['gestion/utilisateurs*'],
+            'can' => 'manage users',
+        ],
+        [
+            'text' => 'Enseignants',
             'url' => 'gestion/professeurs',
-            'icon' => 'fas fa-fw fa-user-shield',
+            'icon' => 'fas fa-fw fa-chalkboard-teacher',
             'active' => ['gestion/professeurs*'],
+            'can' => 'view professeurs',
         ],
 
         // User Account

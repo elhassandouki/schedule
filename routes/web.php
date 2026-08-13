@@ -8,6 +8,7 @@ use App\Http\Controllers\TimetableQualityController;
 use App\Http\Controllers\TimetableExportController;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -17,6 +18,15 @@ Route::get('/register', [RegisterController::class, 'create'])->name('register')
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Gestion des utilisateurs & rôles (super_admin / sous_admin uniquement)
+    Route::middleware('role:super_admin,sous_admin')->group(function () {
+        Route::get('/gestion/utilisateurs', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/gestion/utilisateurs/{user}/modifier', [UserManagementController::class, 'edit'])->name('users.edit');
+        Route::put('/gestion/utilisateurs/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::delete('/gestion/utilisateurs/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+    });
+
     Route::middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->group(function () {
         Route::get('/gestion/professeurs', [ProfessorController::class, 'index'])->name('professors.index');
         Route::get('/gestion/professeurs/ajouter', [ProfessorController::class, 'create'])->name('professors.create');

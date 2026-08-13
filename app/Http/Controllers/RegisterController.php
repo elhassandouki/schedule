@@ -35,6 +35,7 @@ class RegisterController extends Controller
             // Admin privileges are assigned separately by a super admin.
             'role' => 'prof',
         ]);
+        $user->syncSpatieRole();
 
         event(new Registered($user));
 
