@@ -408,11 +408,18 @@ return [
         // Users & roles
         ['header' => 'UTILISATEURS'],
         [
-            'text' => 'Utilisateurs & rôles',
+            'text' => 'Utilisateurs',
             'url' => 'gestion/utilisateurs',
             'icon' => 'fas fa-fw fa-users-cog',
             'active' => ['gestion/utilisateurs*'],
             'can' => 'manage users',
+        ],
+        [
+            'text' => 'Rôles & permissions',
+            'url' => 'gestion/roles',
+            'icon' => 'fas fa-fw fa-user-shield',
+            'active' => ['gestion/roles*'],
+            'can' => 'manage roles',
         ],
         [
             'text' => 'Enseignants',

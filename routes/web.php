@@ -27,6 +27,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/gestion/utilisateurs/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
     });
 
+    // Gestion fine des rôles & permissions (super_admin uniquement)
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/gestion/roles', [\App\Http\Controllers\RolePermissionController::class, 'index'])->name('roles.index');
+        Route::get('/gestion/roles/{role}/permissions', [\App\Http\Controllers\RolePermissionController::class, 'edit'])->name('roles.edit');
+        Route::put('/gestion/roles/{role}/permissions', [\App\Http\Controllers\RolePermissionController::class, 'update'])->name('roles.update');
+    });
+
     Route::middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->group(function () {
         Route::get('/gestion/professeurs', [ProfessorController::class, 'index'])->name('professors.index');
         Route::get('/gestion/professeurs/ajouter', [ProfessorController::class, 'create'])->name('professors.create');
