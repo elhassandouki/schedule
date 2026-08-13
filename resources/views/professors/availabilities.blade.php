@@ -45,14 +45,14 @@
                 <select name="start_minute" class="form-control" required>
                 @for($h=0;$h<24;$h++)@for($m=0;$m<60;$m+=15)
                     <option value="{{ $h*60+$m }}">{{ $h }}h{{ str_pad($m,2,'0',STR_PAD_LEFT) }}</option>
-                @endfor@endfor
+                @endfor @endfor
                 </select>
             </div>
             <div class="form-group"><label>Heure de fin</label>
                 <select name="end_minute" class="form-control" required>
                 @for($h=0;$h<24;$h++)@for($m=0;$m<60;$m+=15)
                     <option value="{{ $h*60+$m }}" {{ $h*60+$m==1020?'selected':'' }}>{{ $h }}h{{ str_pad($m,2,'0',STR_PAD_LEFT) }}</option>
-                @endfor@endfor
+                @endfor @endfor
                 </select>
             </div>
             <div class="form-group form-check">

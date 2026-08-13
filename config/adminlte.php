@@ -377,16 +377,6 @@ return [
                     'icon' => 'fas fa-book-open',
                 ],
                 [
-                    'text' => 'Disponibilités des profs',
-                    'url' => 'gestion/disponibilites-profs',
-                    'icon' => 'fas fa-calendar-check',
-                ],
-                [
-                    'text' => "Conditions d’étude (groupes)",
-                    'url' => 'gestion/conditions-groupes',
-                    'icon' => 'fas fa-clipboard-list',
-                ],
-                [
                     'text' => 'Salles',
                     'url' => 'gestion/salles',
                     'icon' => 'fas fa-door-open',
