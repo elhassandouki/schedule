@@ -12,7 +12,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-left-{{ $quality['quality_score'] >= 90 ? 'success' : ($quality['quality_score'] >= 75 ? 'info' : ($quality['quality_score'] >= 60 ? 'warning' : 'danger')) }}">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h4 class="mb-0">Quality Score</h4>
                 </div>
                 <div class="card-body">
@@ -75,7 +75,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-left-danger">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0 text-danger">
                         <i class="fas fa-exclamation-circle"></i> Hard Conflicts ({{ $quality['conflict_count'] }})
                     </h5>
@@ -110,7 +110,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-left-warning">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0 text-warning">
                         <i class="fas fa-exclamation-triangle"></i> Skipped Sessions ({{ $quality['skipped_sessions'] }})
                     </h5>
@@ -152,7 +152,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-left-warning">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0 text-warning">
                         <i class="fas fa-exclamation"></i> Warnings ({{ $quality['warning_count'] }})
                     </h5>
@@ -179,7 +179,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0">Teacher Workload</h5>
                 </div>
                 <div class="card-body">
@@ -224,7 +224,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0">Classroom Utilization</h5>
                 </div>
                 <div class="card-body">
@@ -276,7 +276,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0">Consecutive Sessions (by Teacher & Day)</h5>
                 </div>
                 <div class="card-body">
@@ -321,7 +321,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-light">
+                <div class="card-header bg-primary">
                     <h5 class="mb-0">Schedule Gaps (by Group & Day)</h5>
                 </div>
                 <div class="card-body">

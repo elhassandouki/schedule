@@ -45,16 +45,16 @@ class DashboardController extends Controller
     private function wizardData(): array
     {
         $steps = [
-            ['key' => 'days', 'label' => 'Jours de la semaine', 'resource' => 'days', 'table' => 'days', 'desc' => 'Ex : Lundi, Mardi, ...'],
-            ['key' => 'timeslots', 'label' => 'Créneaux horaires', 'resource' => 'timeslots', 'table' => 'timeslots', 'desc' => 'Ex : 08:00-10:00'],
-            ['key' => 'years', 'label' => 'Année universitaire', 'resource' => 'annees', 'table' => 'academic_years', 'desc' => 'Ex : 2026/2027'],
-            ['key' => 'departments', 'label' => 'Départements', 'resource' => 'departements', 'table' => 'departments', 'desc' => 'Ex : Département Informatique'],
-            ['key' => 'programs', 'label' => 'Filières', 'resource' => 'filieres', 'table' => 'programs', 'desc' => 'Rattachées à un département'],
-            ['key' => 'semesters', 'label' => 'Semestres', 'resource' => 'semestres', 'table' => 'semesters', 'desc' => 'Rattachés à une filière et une année'],
-            ['key' => 'classrooms', 'label' => 'Salles', 'resource' => 'salles', 'table' => 'classrooms', 'desc' => 'Avec capacité et type (cours/TD/TP)'],
-            ['key' => 'teachers', 'label' => 'Enseignants', 'resource' => 'teachers', 'table' => 'teachers', 'desc' => 'Corps enseignant'],
-            ['key' => 'sections', 'label' => 'Groupes', 'resource' => 'sections', 'table' => 'sections', 'desc' => 'Groupes d’étudiants par filière'],
-            ['key' => 'subjects', 'label' => 'Matières', 'resource' => 'subjects', 'table' => 'subjects', 'desc' => 'Rattachées à un semestre, enseignant et groupe'],
+            ['key' => 'days', 'label' => 'Jours de la semaine', 'resource' => 'days', 'table' => 'days', 'desc' => 'Ex : Lundi, Mardi, ...', 'icon' => 'fas fa-calendar-day'],
+            ['key' => 'timeslots', 'label' => 'Créneaux horaires', 'resource' => 'timeslots', 'table' => 'timeslots', 'desc' => 'Ex : 08:00-10:00', 'icon' => 'fas fa-clock'],
+            ['key' => 'years', 'label' => 'Année universitaire', 'resource' => 'annees', 'table' => 'academic_years', 'desc' => 'Ex : 2026/2027', 'icon' => 'fas fa-calendar-check'],
+            ['key' => 'departments', 'label' => 'Départements', 'resource' => 'departements', 'table' => 'departments', 'desc' => 'Ex : Département Informatique', 'icon' => 'fas fa-building'],
+            ['key' => 'programs', 'label' => 'Filières', 'resource' => 'filieres', 'table' => 'programs', 'desc' => 'Rattachées à un département', 'icon' => 'fas fa-graduation-cap'],
+            ['key' => 'semesters', 'label' => 'Semestres', 'resource' => 'semestres', 'table' => 'semesters', 'desc' => 'Rattachés à une filière et une année', 'icon' => 'fas fa-layer-group'],
+            ['key' => 'classrooms', 'label' => 'Salles', 'resource' => 'salles', 'table' => 'classrooms', 'desc' => 'Avec capacité et type (cours/TD/TP)', 'icon' => 'fas fa-door-open'],
+            ['key' => 'teachers', 'label' => 'Enseignants', 'resource' => 'teachers', 'table' => 'teachers', 'desc' => 'Corps enseignant', 'icon' => 'fas fa-chalkboard-teacher'],
+            ['key' => 'sections', 'label' => 'Groupes', 'resource' => 'sections', 'table' => 'sections', 'desc' => 'Groupes d’étudiants par filière', 'icon' => 'fas fa-users'],
+            ['key' => 'subjects', 'label' => 'Matières', 'resource' => 'subjects', 'table' => 'subjects', 'desc' => 'Rattachées à un semestre, enseignant et groupe', 'icon' => 'fas fa-book-open'],
         ];
         $steps = array_values(array_filter($steps, fn (array $step) => $step['key'] !== 'subjects'));
         $steps = array_values(array_filter($steps, fn (array $step) => !in_array($step['key'], ['sections', 'teachers'], true)));

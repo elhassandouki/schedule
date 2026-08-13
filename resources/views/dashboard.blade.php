@@ -10,28 +10,35 @@
 @endsection
 
 @section('content')
-    <!-- Hero: Key Statistics -->
-    <div class="row mb-4">
-        @forelse ($counts as $label => $value)
-            <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
-                <div class="card h-100 border-0 shadow-sm stat-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <p class="text-muted small text-uppercase mb-1">{{ ucfirst($label) }}</p>
-                                <h3 class="mb-0 text-primary">{{ $value }}</h3>
-                            </div>
-                            <i class="fas fa-university text-muted fa-lg opacity-5"></i>
-                        </div>
-                    </div>
+    <!-- Hero: Key Statistics (AdminLTE small-boxes) -->
+    @php
+        $statMap = [
+            'filières'   => ['icon' => 'fas fa-graduation-cap', 'bg' => 'bg-primary'],
+            'semestres'  => ['icon' => 'fas fa-layer-group', 'bg' => 'bg-success'],
+            'groupes'    => ['icon' => 'fas fa-users', 'bg' => 'bg-info'],
+            'professeurs' => ['icon' => 'fas fa-chalkboard-teacher', 'bg' => 'bg-warning'],
+        ];
+    @endphp
+    @forelse ($counts as $label => $value)
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="small-box {{ $statMap[$label]['bg'] ?? 'bg-primary' }}">
+                <div class="inner">
+                    <h3>{{ $value }}</h3>
+                    <p>{{ ucfirst($label) }}</p>
                 </div>
+                <div class="icon">
+                    <i class="{{ $statMap[$label]['icon'] ?? 'fas fa-university' }}"></i>
+                </div>
+                <a href="{{ route('crud.index', 'semestres') }}" class="small-box-footer">
+                    Voir les détails <i class="fas fa-arrow-circle-right"></i>
+                </a>
             </div>
-        @empty
-            <div class="col-12">
-                <p class="text-muted text-center">Aucune donnée disponible</p>
-            </div>
-        @endforelse
-    </div>
+        </div>
+    @empty
+        <div class="col-12">
+            <p class="text-muted text-center">Aucune donnée disponible</p>
+        </div>
+    @endforelse
 
     <!-- Generate & Recent -->
     <div class="row mt-4">
@@ -39,11 +46,11 @@
         @if (in_array(auth()->user()->role, ['super_admin', 'sous_admin', 'chef_departement', 'chef_filiere']))
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-light border-0">
-                        <h4 class="card-title mb-0">
-                            <i class="fas fa-magic text-primary mr-2"></i>
+                    <div class="card-header bg-primary">
+                        <h3 class="card-title mb-0 text-white">
+                            <i class="fas fa-magic mr-2"></i>
                             Générer un emploi du temps
-                        </h4>
+                        </h3>
                     </div>
 
                     <form action="{{ route('timetable.generate') }}" method="post">
@@ -104,15 +111,16 @@
             </div>
         @endif
 
-        <!-- Recent Generations Section -->
+        <a id="recent-generations"></a>
+    <!-- Recent Generations Section -->
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h4 class="card-title mb-0">
-                        <i class="fas fa-history text-primary mr-2"></i>
-                        Générations récentes
-                    </h4>
-                </div>
+                    <div class="card-header bg-primary">
+                        <h3 class="card-title mb-0 text-white">
+                            <i class="fas fa-history mr-2"></i>
+                            Générations récentes
+                        </h3>
+                    </div>
 
                 <div class="card-body p-0">
                     @forelse ($schedules as $schedule)
@@ -156,10 +164,10 @@
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h4 class="card-title mb-0">
-                        <i class="fas fa-route text-primary mr-2"></i>
-                        Configuration guidée
+                    <div class="card-header bg-primary">
+                        <h3 class="card-title mb-0 text-white">
+                            <i class="fas fa-route mr-2"></i>
+                            Configuration guidée
                         @if ($wizard['ready'])
                             <span class="badge badge-success ml-2"><i class="fas fa-check"></i> Données prêtes</span>
                         @elseif ($wizard['next'])
@@ -176,10 +184,8 @@
                         @foreach ($wizard['steps'] as $index => $step)
                         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
                             <div class="card h-100 border {{ $step['done'] ? 'border-success' : ($wizard['next'] && $wizard['next']['key'] === $step['key'] ? 'border-warning' : 'border-light') }}">
-                                <div class="card-body p-3 text-center">
-                                    <span class="badge {{ $step['done'] ? 'badge-success' : 'badge-secondary' }} mb-2">
-                                        {{ $step['done'] ? '✔' : ($index + 1) }}
-                                    </span>
+                                <div class="card-body p-3 text-center wizard-step">
+                                    <i class="{{ $step['icon'] ?? 'fas fa-check' }} fa-2x {{ $step['done'] ? 'text-success' : 'text-muted' }} mb-2 d-block"></i>
                                     <h6 class="mb-1" style="font-size:.9rem">{{ $step['label'] }}</h6>
                                     <p class="text-muted small mb-2" style="font-size:.75rem">{{ $step['desc'] }}</p>
                                     @if ($wizard['next'] && $wizard['next']['key'] === $step['key'])
@@ -215,49 +221,47 @@
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-light border-0">
-                    <h4 class="card-title mb-0">
-                        <i class="fas fa-bolt text-primary mr-2"></i>
-                        Actions rapides
-                    </h4>
+                    <div class="card-header bg-primary">
+                        <h3 class="card-title mb-0 text-white">
+                            <i class="fas fa-bolt mr-2"></i>
+                            Actions rapides
+                    </h3>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="{{ route('crud.index', 'semesters') }}" class="text-decoration-none">
+                            <a href="{{ route('crud.index', 'semestres') }}" class="text-decoration-none">
                                 <div class="quick-action-card h-100">
-                                    <i class="fas fa-calendar fa-2x text-primary mb-3"></i>
-                                    <h6 class="font-weight-600">Emploi du temps</h6>
-                                    <p class="text-muted small">Voir les semesters</p>
+                                    <i class="fas fa-layer-group fa-2x text-primary mb-3"></i>
+                                    <h6 class="font-weight-600">Semestres</h6>
+                                    <p class="text-muted small">Voir et gérer les semestres</p>
                                 </div>
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="/timetable/sessions/create" class="text-decoration-none">
+                            <a href="{{ route('timetable.create') }}" class="text-decoration-none">
                                 <div class="quick-action-card h-100">
                                     <i class="fas fa-plus-circle fa-2x text-success mb-3"></i>
-                                    <h6 class="font-weight-600">Nouvelle session</h6>
-                                    <p class="text-muted small">Ajouter une séance</p>
+                                    <h6 class="font-weight-600">Nouvelle séance</h6>
+                                    <p class="text-muted small">Ajouter une session manuellement</p>
                                 </div>
                             </a>
                         </div>
-                        @if (!empty($semesters) && $semesters->first())
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="{{ route('crud.index', 'semesters') }}" class="text-decoration-none">
+                            <a href="{{ route('crud.index', 'professeurs') }}" class="text-decoration-none">
                                 <div class="quick-action-card h-100">
-                                    <i class="fas fa-chart-bar fa-2x text-info mb-3"></i>
-                                    <h6 class="font-weight-600">Gérer semesters</h6>
-                                    <p class="text-muted small">Analyse détaillée</p>
+                                    <i class="fas fa-chalkboard-teacher fa-2x text-info mb-3"></i>
+                                    <h6 class="font-weight-600">Enseignants</h6>
+                                    <p class="text-muted small">Disponibilités et modules</p>
                                 </div>
                             </a>
                         </div>
-                        @endif
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="{{ route('crud.index', 'semesters') }}" class="text-decoration-none">
+                            <a href="{{ route('crud.index', 'modules') }}" class="text-decoration-none">
                                 <div class="quick-action-card h-100">
-                                    <i class="fas fa-cog fa-2x text-warning mb-3"></i>
-                                    <h6 class="font-weight-600">Paramètres</h6>
-                                    <p class="text-muted small">Gérer les données</p>
+                                    <i class="fas fa-book-open fa-2x text-warning mb-3"></i>
+                                    <h6 class="font-weight-600">Modules</h6>
+                                    <p class="text-muted small">Matières et volumes horaires</p>
                                 </div>
                             </a>
                         </div>

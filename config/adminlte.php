@@ -311,6 +311,7 @@ return [
         ['header' => 'EMPLOI DU TEMPS'],
         [
             'text' => 'Emplois du temps',
+            'url' => 'timetable/sessions',
             'icon' => 'fas fa-fw fa-calendar-alt',
             'active' => ['timetable*'],
             'submenu' => [
@@ -328,7 +329,7 @@ return [
                 ],
                 [
                     'text' => 'Historique des générations',
-                    'url' => 'dashboard',
+                    'url' => 'dashboard#recent-generations',
                     'icon' => 'fas fa-history',
                 ],
             ],
@@ -407,12 +408,13 @@ return [
         ['header' => 'COMPTE'],
         [
             'text' => 'Mon profil',
-            'url' => '#',
+            'url' => 'dashboard',
             'icon' => 'fas fa-fw fa-user',
+            'active' => ['dashboard'],
         ],
         [
             'text' => 'Préférences',
-            'url' => '#',
+            'url' => 'dashboard',
             'icon' => 'fas fa-fw fa-sliders-h',
         ],
         [

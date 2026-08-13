@@ -19,7 +19,7 @@
 @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 <div class="row">
     <div class="col-md-7">
-        <div class="card"><div class="card-header"><h3 class="card-title">Jours autorisés</h3></div>
+        <div class="card"><div class="card-header bg-primary"><h3 class="card-title text-white">Jours autorisés</h3></div>
         <div class="card-body table-responsive p-0">
         @if($rows->isEmpty())<p class="p-3 mb-0 text-muted">Aucune condition définie : <strong>tous les jours (lundi–dimanche, journée entière)</strong> sont considérés autorisés pour ce groupe.</p>
         @else
@@ -39,7 +39,7 @@
         </div></div>
     </div>
     <div class="col-md-5">
-        <div class="card"><div class="card-header"><h3 class="card-title">Ajouter / modifier une condition</h3></div>
+        <div class="card"><div class="card-header bg-primary"><h3 class="card-title text-white">Ajouter / modifier une condition</h3></div>
         <div class="card-body">
         @php $editing = request()->has('edit') ? $rows->firstWhere('id', (int) request()->query('edit')) : null; @endphp
         <form method="post" action="{{ route('crud.group-conditions.store', ['groupes', $group->id]) }}">@csrf

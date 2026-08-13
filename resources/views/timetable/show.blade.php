@@ -52,8 +52,8 @@
 
     <!-- Sessions Table -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-light border-0">
-            <h4 class="card-title mb-0">
+        <div class="card-header bg-primary">
+            <h3 class="card-title mb-0 text-white">
                 <i class="fas fa-calendar-alt text-primary mr-2"></i>
                 Sessions planifiées ({{ count($entries) }})
             </h4>
@@ -112,7 +112,7 @@
     @if (session('unplaced') && count(session('unplaced')) > 0)
         <div class="card border-warning shadow-sm mt-4">
             <div class="card-header bg-warning bg-opacity-25 border-warning">
-                <h4 class="card-title mb-0 text-dark">
+                <h3 class="card-title mb-0 text-dark">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
                     Séances non placées ({{ array_sum(array_column(session('unplaced'), 'skipped')) }})
                 </h4>

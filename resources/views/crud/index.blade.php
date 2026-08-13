@@ -3,7 +3,7 @@
 @section('plugins.Datatables', true)
 @section('content_header')
 <div class="d-flex justify-content-between align-items-center">
-    <h1>{{ $meta['title'] }}</h1>
+    <h1><i class="{{ $meta['icon'] ?? 'fas fa-list' }} mr-2"></i>{{ $meta['title'] }}</h1>
     <div class="d-flex gap-2">
         @if($resource === 'groupes')
         <form method="get" action="{{ route('crud.index',$resource) }}" class="d-inline-flex align-items-center mr-2">
@@ -37,7 +37,16 @@
     </div>
 @endif
 
-<div class="card">
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title mb-0 text-white">
+            <i class="{{ $meta['icon'] ?? 'fas fa-list' }} mr-2"></i>
+            Liste — {{ $meta['title'] }}
+        </h3>
+        <div class="card-tools">
+            <span class="badge badge-light"><i class="fas fa-table mr-1"></i>{{ number_format($rows->total()) }} élément(s)</span>
+        </div>
+    </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-bordered table-striped" id="dataTable">
             <thead>

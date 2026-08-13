@@ -3,14 +3,23 @@
 @section('plugins.Datatables', true)
 @section('content_header')
 <div class="d-flex justify-content-between align-items-center">
-    <h1>Gestion des professeurs</h1>
+    <h1><i class="fas fa-chalkboard-teacher mr-2"></i>Gestion des professeurs</h1>
     <a href="{{ route('professors.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Ajouter un professeur</a>
 </div>
 @endsection
 @section('content')
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 
-<div class="card">
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title mb-0 text-white">
+            <i class="fas fa-chalkboard-teacher mr-2"></i>
+            Liste des professeurs
+        </h3>
+        <div class="card-tools">
+            <span class="badge badge-light"><i class="fas fa-users mr-1"></i>{{ $professors->total() }} professeur(s)</span>
+        </div>
+    </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-bordered table-striped" id="professorTable">
             <thead>

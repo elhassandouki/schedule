@@ -11,7 +11,7 @@
 @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 <div class="row">
     <div class="col-md-7">
-        <div class="card"><div class="card-header"><h3 class="card-title">Jours et horaires définis</h3></div>
+        <div class="card"><div class="card-header bg-primary"><h3 class="card-title text-white">Jours et horaires définis</h3></div>
         <div class="card-body table-responsive p-0">
         @if(!$defined)<p class="p-3 mb-0 text-muted">Aucune disponibilité définie : <strong>tous les jours (lundi–dimanche, journée entière)</strong> sont considérés disponibles pour la génération.</p>
         @else
@@ -31,7 +31,7 @@
         </div></div>
     </div>
     <div class="col-md-5">
-        <div class="card"><div class="card-header"><h3 class="card-title">Ajouter / modifier une disponibilité</h3></div>
+        <div class="card"><div class="card-header bg-primary"><h3 class="card-title text-white">Ajouter / modifier une disponibilité</h3></div>
         <div class="card-body">
         <form method="post" action="{{ route('professors.availabilities.update', $professor) }}">@csrf
             <div class="form-group"><label>Jour</label>

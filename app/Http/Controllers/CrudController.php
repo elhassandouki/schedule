@@ -10,24 +10,24 @@ use App\Services\ProfessorModuleEligibility;
 class CrudController extends Controller
 {
     private function resources(): array { return [
-        'annees' => ['table'=>'academic_years','title'=>'Années universitaires','fields'=>['name'=>'Année (ex: 2026/2027)','starts_on'=>'Date début','ends_on'=>'Date fin','is_active'=>'Année active'], 'types'=>['starts_on'=>'date','ends_on'=>'date','is_active'=>'checkbox']],
-        'departements' => ['table'=>'departments','title'=>'Départements','fields'=>['name'=>'Nom','code'=>'Code']],
-        'filieres' => ['table'=>'programs','title'=>'Filières','fields'=>['department_id'=>'Département','name'=>'Nom (français)','name_ar'=>'Nom (arabe)','code'=>'Code'], 'selects'=>['department_id'=>['departments','name']]],
-        'semestres' => ['table'=>'semesters','title'=>'Semestres','fields'=>['program_id'=>'Filière','academic_year_id'=>'Année','name'=>'Libellé','number'=>'Numéro'], 'types'=>['number'=>'number'], 'selects'=>['program_id'=>['programs','name'],'academic_year_id'=>['academic_years','name']]],
-        'modules' => ['table'=>'modules','title'=>'Modules','fields'=>['program_id'=>'Filière','semester_id'=>'Semestre','name'=>'Nom','code'=>'Code','weekly_hours'=>'Heures / semaine'], 'types'=>['weekly_hours'=>'number'], 'selects'=>['program_id'=>['programs','name'],'semester_id'=>['semesters','name']]],
-        'salles' => ['table'=>'classrooms','title'=>'Salles','fields'=>['name'=>'Nom','capacity'=>'Capacité','type'=>'Type'], 'types'=>['capacity'=>'number','type'=>'select'], 'options'=>['type'=>['cours'=>'Cours','td'=>'TD','tp'=>'TP','mixte'=>'Mixte']]],
-        'professeurs' => ['table'=>'users','title'=>'Utilisateurs et professeurs','fields'=>['name'=>'Nom complet','email'=>'Email','password'=>'Mot de passe','role'=>'Rôle','max_weekly_hours'=>'Maximum heures / semaine (prof)'], 'types'=>['password'=>'password','role'=>'select','max_weekly_hours'=>'number'], 'options'=>['role'=>array_combine(\App\Models\User::ROLES, \App\Models\User::ROLES)]],
-        'affectations-modules' => ['table'=>'professor_module','title'=>'Modules autorisés par professeur','fields'=>['professor_id'=>'Professeur','module_id'=>'Module'], 'selects'=>['professor_id'=>['users','name'],'module_id'=>['modules','name']]],
-        'disponibilites-profs' => ['table'=>'professor_availabilities','title'=>'Disponibilités des professeurs','fields'=>['professor_id'=>'Professeur','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','available'=>'Disponible'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','available'=>'checkbox'], 'selects'=>['professor_id'=>['users','name']]],
-        'conditions-groupes' => ['table'=>'group_study_conditions','title'=>'Conditions d’étude des groupes','fields'=>['student_group_id'=>'Groupe','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','max_daily_minutes'=>'Maximum minutes / jour','max_gap_minutes'=>'Maximum pause (minutes)'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','max_daily_minutes'=>'number','max_gap_minutes'=>'number'], 'selects'=>['student_group_id'=>['student_groups','name']]],
-        'groupes' => ['table'=>'student_groups','title'=>'Groupes d’étudiants','fields'=>['semester_id'=>'Semestre','name'=>'Nom','capacity'=>'Capacité'], 'types'=>['capacity'=>'number'], 'selects'=>['semester_id'=>['semesters','name']]],
-        'timeslots' => ['table'=>'timeslots','title'=>'Créneaux horaires','fields'=>['name'=>'Libellé','starts_at'=>'Heure début','ends_at'=>'Heure fin','position'=>'Ordre'], 'types'=>['starts_at'=>'time','ends_at'=>'time','position'=>'number']],
-        'days' => ['table'=>'days','title'=>'Jours de l\'école','fields'=>['name'=>'Nom','position'=>'Ordre'], 'types'=>['position'=>'number']],
+        'annees' => ['table'=>'academic_years','title'=>'Années universitaires','icon'=>'fas fa-calendar-check','fields'=>['name'=>'Année (ex: 2026/2027)','starts_on'=>'Date début','ends_on'=>'Date fin','is_active'=>'Année active'], 'types'=>['starts_on'=>'date','ends_on'=>'date','is_active'=>'checkbox']],
+        'departements' => ['table'=>'departments','title'=>'Départements','icon'=>'fas fa-building','fields'=>['name'=>'Nom','code'=>'Code']],
+        'filieres' => ['table'=>'programs','title'=>'Filières','icon'=>'fas fa-graduation-cap','fields'=>['department_id'=>'Département','name'=>'Nom (français)','name_ar'=>'Nom (arabe)','code'=>'Code'], 'selects'=>['department_id'=>['departments','name']]],
+        'semestres' => ['table'=>'semesters','title'=>'Semestres','icon'=>'fas fa-layer-group','fields'=>['program_id'=>'Filière','academic_year_id'=>'Année','name'=>'Libellé','number'=>'Numéro'], 'types'=>['number'=>'number'], 'selects'=>['program_id'=>['programs','name'],'academic_year_id'=>['academic_years','name']]],
+        'modules' => ['table'=>'modules','title'=>'Modules','icon'=>'fas fa-book-open','fields'=>['program_id'=>'Filière','semester_id'=>'Semestre','name'=>'Nom','code'=>'Code','weekly_hours'=>'Heures / semaine'], 'types'=>['weekly_hours'=>'number'], 'selects'=>['program_id'=>['programs','name'],'semester_id'=>['semesters','name']]],
+        'salles' => ['table'=>'classrooms','title'=>'Salles','icon'=>'fas fa-door-open','fields'=>['name'=>'Nom','capacity'=>'Capacité','type'=>'Type'], 'types'=>['capacity'=>'number','type'=>'select'], 'options'=>['type'=>['cours'=>'Cours','td'=>'TD','tp'=>'TP','mixte'=>'Mixte']]],
+        'professeurs' => ['table'=>'users','title'=>'Utilisateurs et professeurs','icon'=>'fas fa-user-shield','fields'=>['name'=>'Nom complet','email'=>'Email','password'=>'Mot de passe','role'=>'Rôle','max_weekly_hours'=>'Maximum heures / semaine (prof)'], 'types'=>['password'=>'password','role'=>'select','max_weekly_hours'=>'number'], 'options'=>['role'=>array_combine(\App\Models\User::ROLES, \App\Models\User::ROLES)]],
+        'affectations-modules' => ['table'=>'professor_module','title'=>'Modules autorisés par professeur','icon'=>'fas fa-chalkboard-teacher','fields'=>['professor_id'=>'Professeur','module_id'=>'Module'], 'selects'=>['professor_id'=>['users','name'],'module_id'=>['modules','name']]],
+        'disponibilites-profs' => ['table'=>'professor_availabilities','title'=>'Disponibilités des professeurs','icon'=>'fas fa-clock','fields'=>['professor_id'=>'Professeur','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','available'=>'Disponible'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','available'=>'checkbox'], 'selects'=>['professor_id'=>['users','name']]],
+        'conditions-groupes' => ['table'=>'group_study_conditions','title'=>'Conditions d’étude des groupes','icon'=>'fas fa-file-alt','fields'=>['student_group_id'=>'Groupe','day_of_week'=>'Jour (1=Lu … 7=Di)','start_minute'=>'Début (minutes après minuit)','end_minute'=>'Fin (minutes après minuit)','max_daily_minutes'=>'Maximum minutes / jour','max_gap_minutes'=>'Maximum pause (minutes)'], 'types'=>['day_of_week'=>'number','start_minute'=>'number','end_minute'=>'number','max_daily_minutes'=>'number','max_gap_minutes'=>'number'], 'selects'=>['student_group_id'=>['student_groups','name']]],
+        'groupes' => ['table'=>'student_groups','title'=>'Groupes d’étudiants','icon'=>'fas fa-users','fields'=>['semester_id'=>'Semestre','name'=>'Nom','capacity'=>'Capacité'], 'types'=>['capacity'=>'number'], 'selects'=>['semester_id'=>['semesters','name']]],
+        'timeslots' => ['table'=>'timeslots','title'=>'Créneaux horaires','icon'=>'fas fa-clock','fields'=>['name'=>'Libellé','starts_at'=>'Heure début','ends_at'=>'Heure fin','position'=>'Ordre'], 'types'=>['starts_at'=>'time','ends_at'=>'time','position'=>'number']],
+        'days' => ['table'=>'days','title'=>"Jours de l'\u00e9cole",'icon'=>'fas fa-calendar-day','fields'=>['name'=>'Nom','position'=>'Ordre'], 'types'=>['position'=>'number']],
     ]; }
     private function resource(string $key): array {
         if ($key === 'groupes') {
             return [
-                'table' => 'student_groups', 'title' => 'Groupes d’étudiants',
+                'table' => 'student_groups', 'title' => 'Groupes d’étudiants', 'icon' => 'fas fa-users',
                 'fields' => ['program_id' => 'Filière', 'semester_id' => 'Semestre', 'name' => 'Nom', 'capacity' => 'Capacité', 'student_count' => 'Nombre d’étudiants', 'max_daily_minutes' => 'Maximum minutes / jour'],
                 'types' => ['capacity' => 'number', 'student_count' => 'number', 'max_daily_minutes' => 'number'],
                 'selects' => ['program_id' => ['programs', 'name'], 'semester_id' => ['semesters', 'name']],
@@ -35,7 +35,7 @@ class CrudController extends Controller
         }
         if ($key === 'disponibilites-professeurs') {
             return [
-                'table' => 'professor_availabilities', 'title' => 'Disponibilités des professeurs',
+                'table' => 'professor_availabilities', 'title' => 'Disponibilités des professeurs', 'icon' => 'fas fa-clock',
                 'fields' => ['professor_id' => 'Professeur', 'day_of_week' => 'Jour (1-7)', 'start_minute' => 'Début (minutes)', 'end_minute' => 'Fin (minutes)', 'available' => 'Disponible'],
                 'types' => ['day_of_week' => 'number', 'start_minute' => 'number', 'end_minute' => 'number', 'available' => 'checkbox'],
                 'selects' => ['professor_id' => ['users', 'name']],
@@ -43,7 +43,7 @@ class CrudController extends Controller
         }
         if ($key === 'conditions-groupes') {
             return [
-                'table' => 'group_study_conditions', 'title' => 'Conditions des groupes',
+                'table' => 'group_study_conditions', 'title' => 'Conditions des groupes', 'icon' => 'fas fa-file-alt',
                 'fields' => ['student_group_id' => 'Groupe', 'day_of_week' => 'Jour (1-7)', 'start_minute' => 'Début (minutes)', 'end_minute' => 'Fin (minutes)', 'max_daily_minutes' => 'Maximum minutes / jour', 'max_gap_minutes' => 'Maximum pause (minutes)'],
                 'types' => ['day_of_week' => 'number', 'start_minute' => 'number', 'end_minute' => 'number', 'max_daily_minutes' => 'number', 'max_gap_minutes' => 'number'],
                 'selects' => ['student_group_id' => ['student_groups', 'name']],
