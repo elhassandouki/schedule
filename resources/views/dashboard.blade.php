@@ -19,6 +19,7 @@
             'professeurs' => ['icon' => 'fas fa-chalkboard-teacher', 'bg' => 'bg-warning'],
         ];
     @endphp
+    <div class="row">
     @forelse ($counts as $label => $value)
         <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
             <div class="small-box {{ $statMap[$label]['bg'] ?? 'bg-primary' }}">
@@ -39,6 +40,7 @@
             <p class="text-muted text-center">Aucune donnée disponible</p>
         </div>
     @endforelse
+    </div>
 
     <!-- Generate & Recent -->
     <div class="row mt-4">
