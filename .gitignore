@@ -25,3 +25,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+schedule
+bootstrap/cache/packages.php
+bootstrap/cache/services.php
+
