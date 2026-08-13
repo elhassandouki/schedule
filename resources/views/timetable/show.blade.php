@@ -1,6 +1,7 @@
-@extends('layouts.app')
+@extends('adminlte::page')
 
 @section('title', 'Emploi du temps — ' . $semester->name)
+@section('plugins.Datatables', true)
 @section('page_title', 'Emploi du temps')
 
 @section('breadcrumb')
@@ -61,7 +62,7 @@
         <div class="card-body p-0">
             @if (count($entries) > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-bordered table-striped mb-0" id="timetableTable">
                         <thead class="bg-light">
                             <tr>
                                 <th>Jour</th>
@@ -182,5 +183,31 @@
             </div>
         </div>
     @endif
-</div>
+    </div>
 @endsection
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof jQuery.fn.DataTable !== 'undefined') {
+        jQuery('#timetableTable').DataTable({
+            language: {
+                sProcessing: "Traitement en cours...",
+                sSearch: "Rechercher :",
+                sLengthMenu: "Afficher _MENU_ éléments",
+                sInfo: "Affichage de l\'élément _START_ à _END_ sur _TOTAL_ éléments",
+                sInfoEmpty: "Affichage de l\'élément 0 à 0 sur 0 élément",
+                sInfoFiltered: "(filtré de _MAX_ éléments au total)",
+                sLoadingRecords: "Chargement en cours...",
+                sZeroRecords: "Aucun élément à afficher",
+                sEmptyTable: "Aucune donnée disponible dans le tableau",
+                paginate: { sFirst: "Premier", sPrevious: "Précédent", sNext: "Suivant", sLast: "Dernier" },
+                aria: { sortAscending: ": activer pour trier la colonne par ordre croissant", sortDescending: ": activer pour trier la colonne par ordre décroissant" }
+            },
+            order: [[0, 'asc']],
+            lengthMenu: [10, 25, 50, 100],
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+        });
+    }
+});
+</script>
+@endpush

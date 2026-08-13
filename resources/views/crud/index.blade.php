@@ -1,5 +1,6 @@
 @extends('adminlte::page')
 @section('title', $meta['title'])
+@section('plugins.Datatables', true)
 @section('content_header')
 <div class="d-flex justify-content-between align-items-center">
     <h1>{{ $meta['title'] }}</h1>
@@ -38,7 +39,7 @@
 
 <div class="card">
     <div class="card-body table-responsive p-0">
-        <table class="table table-hover">
+        <table class="table table-bordered table-striped" id="dataTable">
             <thead>
                 <tr>
                     @foreach($meta['fields'] as $field=>$label)<th>{{ $label }}</th>@endforeach
@@ -107,3 +108,29 @@
     @if($rows->hasPages())<div class="card-footer">{{ $rows->links() }}</div>@endif
 </div>
 @endsection
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof jQuery.fn.DataTable !== 'undefined') {
+        jQuery('#dataTable').DataTable({
+            language: {
+                sProcessing: "Traitement en cours...",
+                sSearch: "Rechercher :",
+                sLengthMenu: "Afficher _MENU_ éléments",
+                sInfo: "Affichage de l'élément _START_ à _END_ sur _TOTAL_ éléments",
+                sInfoEmpty: "Affichage de l'élément 0 à 0 sur 0 élément",
+                sInfoFiltered: "(filtré de _MAX_ éléments au total)",
+                sLoadingRecords: "Chargement en cours...",
+                sZeroRecords: "Aucun élément à afficher",
+                sEmptyTable: "Aucune donnée disponible dans le tableau",
+                paginate: { sFirst: "Premier", sPrevious: "Précédent", sNext: "Suivant", sLast: "Dernier" },
+                aria: { sortAscending: ": activer pour trier la colonne par ordre croissant", sortDescending: ": activer pour trier la colonne par ordre décroissant" }
+            },
+            order: [[0, 'asc']],
+            lengthMenu: [10, 25, 50, 100],
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+        });
+    }
+});
+</script>
+@endpush

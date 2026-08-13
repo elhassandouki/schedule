@@ -273,3 +273,29 @@
     </form>
 
 @endsection
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof jQuery.fn.DataTable !== 'undefined' && jQuery('#generationsTable').length) {
+        jQuery('#generationsTable').DataTable({
+            language: {
+                sProcessing: "Traitement en cours...",
+                sSearch: "Rechercher :",
+                sLengthMenu: "Afficher _MENU_ éléments",
+                sInfo: "Affichage de l\'élément _START_ à _END_ sur _TOTAL_ éléments",
+                sInfoEmpty: "Affichage de l\'élément 0 à 0 sur 0 élément",
+                sInfoFiltered: "(filtré de _MAX_ éléments au total)",
+                sLoadingRecords: "Chargement en cours...",
+                sZeroRecords: "Aucun élément à afficher",
+                sEmptyTable: "Aucune donnée disponible dans le tableau",
+                paginate: { sFirst: "Premier", sPrevious: "Précédent", sNext: "Suivant", sLast: "Dernier" },
+                aria: { sortAscending: ": activer pour trier la colonne par ordre croissant", sortDescending: ": activer pour trier la colonne par ordre décroissant" }
+            },
+            order: [[1, 'desc']],
+            lengthMenu: [5, 10, 25],
+            paging: false
+        });
+    }
+});
+</script>
+@endpush
