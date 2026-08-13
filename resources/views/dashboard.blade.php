@@ -271,6 +271,140 @@
         </div>
     </div>
 
+    <!-- Statistics & Charts Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Statistiques & État d’avancement
+                    </h3>
+                    <div class="card-tools">
+                        <span class="badge badge-light"><i class="fas fa-chart-pie mr-1"></i>Temps réel</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Progress bars per entity -->
+                    @php
+                        $progressItems = [
+                            ['label' => 'Jours de la semaine', 'icon' => 'fas fa-calendar-day', 'current' => $reference['days'], 'target' => 7, 'color' => 'bg-primary', 'route' => route('crud.index', 'days')],
+                            ['label' => 'Créneaux horaires', 'icon' => 'fas fa-clock', 'current' => $reference['timeslots'], 'target' => max(8, $reference['timeslots']), 'color' => 'bg-success', 'route' => route('crud.index', 'timeslots')],
+                            ['label' => 'Années universitaires', 'icon' => 'fas fa-calendar-check', 'current' => $reference['years'], 'target' => 1, 'color' => 'bg-info', 'route' => route('crud.index', 'annees')],
+                            ['label' => 'Départements', 'icon' => 'fas fa-building', 'current' => $reference['departments'], 'target' => max(1, $reference['departments']), 'color' => 'bg-warning', 'route' => route('crud.index', 'departements')],
+                            ['label' => 'Filières', 'icon' => 'fas fa-graduation-cap', 'current' => $reference['programs'], 'target' => max(1, $reference['programs']), 'color' => 'bg-danger', 'route' => route('crud.index', 'filieres')],
+                            ['label' => 'Semestres', 'icon' => 'fas fa-layer-group', 'current' => $reference['semesters'], 'target' => max(1, $reference['semesters']), 'color' => 'bg-indigo', 'route' => route('crud.index', 'semestres')],
+                            ['label' => 'Salles', 'icon' => 'fas fa-door-open', 'current' => $reference['classrooms'], 'target' => max(1, $reference['classrooms']), 'color' => 'bg-teal', 'route' => route('crud.index', 'salles')],
+                            ['label' => 'Modules', 'icon' => 'fas fa-book-open', 'current' => $reference['modules'], 'target' => max(1, $reference['modules']), 'color' => 'bg-maroon', 'route' => route('crud.index', 'modules')],
+                            ['label' => "Groupes d'étudiants", 'icon' => 'fas fa-users', 'current' => $reference['groupes'], 'target' => max(1, $reference['groupes']), 'color' => 'bg-navy', 'route' => route('crud.index', 'groupes')],
+                            ['label' => 'Enseignants', 'icon' => 'fas fa-chalkboard-teacher', 'current' => $reference['teachers'], 'target' => max(1, $reference['teachers']), 'color' => 'bg-olive', 'route' => route('crud.index', 'professeurs')],
+                        ];
+                    @endphp
+                    <div class="row">
+                        @foreach ($progressItems as $item)
+                        <div class="col-lg-6 col-md-12 mb-2">
+                            <div class="info-box mb-1 shadow-sm" style="min-height:60px">
+                                <a href="{{ $item['route'] }}" class="d-flex align-items-center text-dark text-decoration-none w-100">
+                                    <span class="info-box-icon {{ $item['current'] > 0 ? str_replace('bg-', 'bg-', $item['color']) : 'bg-secondary' }}"><i class="{{ $item['icon'] }}"></i></span>
+                                    <div class="info-box-content flex-grow-1">
+                                        <span class="info-box-text">
+                                            {{ $item['label'] }}
+                                            <span class="badge {{ $item['current'] > 0 ? 'badge-success' : 'badge-secondary' }} float-right">{{ $item['current'] }}</span>
+                                        </span>
+                                        <div class="progress mt-1" style="height:14px">
+                                            @php $pct = $item['target'] > 0 ? min(100, intdiv($item['current'] * 100, $item['target'])) : 0; @endphp
+                                            <div class="progress-bar {{ $item['color'] }}" style="width: {{ $pct }}%"></div>
+                                        </div>
+                                        <span class="info-box-number small text-muted">{{ $pct }}% — {{ $item['current'] }} élément(s)</span>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-calendar-week mr-2"></i>
+                        Séances par jour
+                    </h3>
+                    <div class="card-tools">
+                        <span class="badge badge-light"><i class="fas fa-bars mr-1"></i>{{ array_sum($charts['sessionsPerDay']['values']) }} séances</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartSessionsPerDay" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-clock mr-2"></i>
+                        Séances par créneau horaire
+                    </h3>
+                    <div class="card-tools">
+                        <span class="badge badge-light"><i class="fas fa-history mr-1"></i>Charge horaire</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartSessionsPerSlot" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-4">
+            <div class="card card-success card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-users mr-2"></i>
+                        Groupes par semestre
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartGroupsBySemester" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-book-open mr-2"></i>
+                        Modules par filière
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartModulesByProgram" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-warning card-outline">
+                <div class="card-header">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-chart-area mr-2"></i>
+                        Générations (10 derniers jours)
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartGenerationTrend" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Form for logout (hidden) -->
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
         @csrf
@@ -278,7 +412,99 @@
 
 @endsection
 @push('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const adminlteBlue = '#007bff';
+    const chartFont = { family: "'Source Sans Pro', sans-serif", size: 13 };
+    const tooltips = { mode: 'index', intersect: false, backgroundColor: 'rgba(0,0,0,0.8)', titleFont: chartFont, bodyFont: chartFont };
+
+    if (typeof Chart !== 'undefined') {
+        // Séances par jour
+        new Chart(document.getElementById('chartSessionsPerDay'), {
+            type: 'bar',
+            data: {
+                labels: @json($charts['sessionsPerDay']['labels']),
+                datasets: [{
+                    label: 'Séances',
+                    data: @json($charts['sessionsPerDay']['values']),
+                    backgroundColor: adminlteBlue,
+                    borderColor: '#0056b3',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: tooltips }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: chartFont } }, x: { ticks: { font: chartFont } } } }
+        });
+
+        // Séances par créneau horaire
+        new Chart(document.getElementById('chartSessionsPerSlot'), {
+            type: 'line',
+            data: {
+                labels: @json($charts['sessionsPerSlot']['labels']),
+                datasets: [{
+                    label: 'Séances',
+                    data: @json($charts['sessionsPerSlot']['values']),
+                    fill: true,
+                    backgroundColor: 'rgba(28, 200, 138, 0.15)',
+                    borderColor: '#1cc88a',
+                    tension: 0.35,
+                    pointBackgroundColor: '#1cc88a'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: tooltips }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: chartFont } }, x: { ticks: { font: chartFont } } } }
+        });
+
+        // Groupes par semestre
+        new Chart(document.getElementById('chartGroupsBySemester'), {
+            type: 'pie',
+            data: {
+                labels: @json($charts['groupsBySemester']['labels']),
+                datasets: [{
+                    data: @json($charts['groupsBySemester']['values']),
+                    backgroundColor: ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6f42c1'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: chartFont } }, tooltip: tooltips } }
+        });
+
+        // Modules par filière
+        new Chart(document.getElementById('chartModulesByProgram'), {
+            type: 'doughnut',
+            data: {
+                labels: @json($charts['modulesByProgram']['labels']),
+                datasets: [{
+                    data: @json($charts['modulesByProgram']['values']),
+                    backgroundColor: ['#fd7e14', '#20c997', '#6610f2', '#e83e8c', '#6c757d'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: chartFont } }, tooltip: tooltips } }
+        });
+
+        // Trend générations
+        new Chart(document.getElementById('chartGenerationTrend'), {
+            type: 'line',
+            data: {
+                labels: @json($charts['generationTrend']['labels']),
+                datasets: [{
+                    label: 'Générations',
+                    data: @json($charts['generationTrend']['values']),
+                    fill: true,
+                    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                    borderColor: '#ffc107',
+                    tension: 0.35,
+                    pointBackgroundColor: '#ffc107'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: tooltips }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: chartFont } }, x: { ticks: { font: chartFont } } } }
+        });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof jQuery.fn.DataTable !== 'undefined' && jQuery('#generationsTable').length) {
         jQuery('#generationsTable').DataTable({

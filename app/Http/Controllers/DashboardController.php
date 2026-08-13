@@ -34,7 +34,77 @@ class DashboardController extends Controller
                 'days' => DB::table('days')->count(),
             ],
             'wizard' => $this->wizardData(),
+            'charts' => $this->chartsData(),
         ]);
+    }
+
+    /**
+     * Aggregate statistics for the dashboard charts (progress per entity,
+     * sessions per day, recent generation trend, distribution per filière).
+     */
+    private function chartsData(): array
+    {
+        $days = DB::table('days')->orderBy('position')->get(['id', 'name']);
+        $dayNames = $days->pluck('name')->all();
+
+        // Sessions per day of week (latest generation)
+        $sessionsPerDay = collect(array_fill(0, $days->count(), 0));
+        if ($days->isNotEmpty()) {
+            $counts = DB::table('timetable_sessions as ts')
+                ->join('days as d', 'd.id', '=', 'ts.day_id')
+                ->groupBy('d.id')
+                ->pluck(DB::raw('count(*)'), 'd.id');
+            foreach ($counts as $dayId => $count) {
+                $index = $days->search(fn ($day) => $day->id == $dayId);
+                if ($index !== false) {
+                    $sessionsPerDay[$index] = (int) $count;
+                }
+            }
+        }
+
+        // Sessions per timeslot for the latest day to build a heatmap-like bar
+        $sessionsPerSlot = [];
+        $slotLabels = [];
+        $slots = DB::table('timeslots')->orderBy('position')->get(['id', 'name', 'starts_at']);
+        if ($slots->isNotEmpty()) {
+            $slotCounts = DB::table('timetable_sessions')
+                ->groupBy('timeslot_id')
+                ->pluck(DB::raw('count(*)'), 'timeslot_id');
+            foreach ($slots as $slot) {
+                $slotLabels[] = $slot->starts_at . 'h';
+                $sessionsPerSlot[] = $slotCounts->get($slot->id, 0);
+            }
+        }
+
+        // Distribution of groups by semester (with program name)
+        $groupsBySemester = DB::table('student_groups as sg')
+            ->join('semesters as s', 's.id', '=', 'sg.semester_id')
+            ->join('programs as p', 'p.id', '=', 's.program_id')
+            ->select('s.id', DB::raw('concat(p.name, " — Semestre ", s.number) as label'))
+            ->addSelect(DB::raw('count(*) as cnt'))
+            ->groupBy('s.id')
+            ->pluck('cnt', 'label');
+
+        // Modules per filière
+        $modulesByProgram = DB::table('modules as m')
+            ->join('programs as p', 'p.id', '=', 'm.program_id')
+            ->groupBy('p.id')
+            ->pluck(DB::raw('count(*)'), 'p.name');
+
+        // Generation trend (per day, last 10 days)
+        $trend = [];
+        for ($i = 9; $i >= 0; $i--) {
+            $day = now()->subDays($i)->format('Y-m-d');
+            $trend[$day] = ScheduleHistory::whereDate('created_at', $day)->count();
+        }
+
+        return [
+            'sessionsPerDay' => ['labels' => $dayNames, 'values' => $sessionsPerDay->all()],
+            'sessionsPerSlot' => ['labels' => $slotLabels, 'values' => $sessionsPerSlot],
+            'groupsBySemester' => ['labels' => $groupsBySemester->keys()->all(), 'values' => $groupsBySemester->values()->all()],
+            'modulesByProgram' => ['labels' => $modulesByProgram->keys()->all(), 'values' => $modulesByProgram->values()->all()],
+            'generationTrend' => ['labels' => array_map(fn ($d) => substr($d, 5), array_keys($trend)), 'values' => array_values($trend)],
+        ];
     }
 
     /**
