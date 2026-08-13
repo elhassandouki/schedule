@@ -31,5 +31,20 @@ class NewCrudResourcesTest extends \Tests\TestCase {
         // destroy avail
         $this->delete(route('crud.destroy',['disponibilites-profs',$id]))->assertRedirect();
     }
+    public function test_group_semester_must_belong_to_program(): void {
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class)->actingAs($this->admin());
+        // Pick two different programs and a semester that belongs to the other program
+        $programs = \DB::table('programs')->orderBy('id')->pluck('id')->all();
+        $this->assertGreaterThanOrEqual(2, count($programs));
+        $programA = $programs[0];
+        $programB = $programs[1];
+        $otherSemester = \DB::table('semesters')->where('program_id', $programB)->value('id');
+        $this->assertNotNull($otherSemester);
+        $group = \DB::table('student_groups')->first();
+        $this->put(route('crud.update',['groupes',$group->id]),[
+            'program_id'=>$programA,'semester_id'=>$otherSemester,
+            'name'=>'X','capacity'=>10,'student_count'=>5,'max_daily_minutes'=>360,
+        ])->assertStatus(422);
+    }
     private function admin(): \App\Models\User { return \App\Models\User::where('email','admin@school.local')->first(); }
 }
