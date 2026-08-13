@@ -133,6 +133,12 @@
                                 >
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                <form method="post" action="{{ route('timetable.generate.destroy', $schedule->id) }}" class="d-inline ml-1" onsubmit="return confirm('Supprimer cette génération et toutes ses séances ?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer cette génération">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     @empty

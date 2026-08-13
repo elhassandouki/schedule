@@ -164,6 +164,18 @@ class DashboardController extends Controller
         return view('timetable.show', ['semester' => $semester, 'entries' => $entries]);
     }
 
+    public function destroy(ScheduleHistory $generation)
+    {
+        $deletedSessions = TimetableSession::where('semester_id', $generation->semester_id)
+            ->where('created_at', '>=', $generation->created_at)
+            ->where('created_at', '<=', $generation->updated_at)
+            ->delete();
+
+        $generation->delete();
+
+        return redirect()->back()->with('success', "Génération « {$generation->getOriginal('name')} » supprimée ({$deletedSessions} séance(s) retirée(s)).");
+    }
+
     private function canAccessSemester($user, Semester $semester, bool $isAdminOrChef): bool
     {
         if ($isAdminOrChef) {
