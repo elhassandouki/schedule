@@ -149,20 +149,38 @@
         </div>
     @endif
 
-    <!-- Quick Links -->
+    <!-- Export & Quality Links -->
     <div class="row mt-4">
-        <div class="col-md-6">
+        @if (count($entries) > 0)
+            <div class="col-md-4">
+                <a href="{{ route('timetable.export.pdf', $semester->id) }}" target="_blank" class="btn btn-danger btn-block">
+                    <i class="fas fa-file-pdf mr-2"></i>
+                    Télécharger en PDF
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ route('timetable.export.excel', $semester->id) }}" class="btn btn-success btn-block">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    Télécharger en Excel
+                </a>
+            </div>
+        @endif
+        <div class="col-md-4">
             <a href="{{ route('timetable.quality', $semester->id) }}" class="btn btn-outline-primary btn-block">
                 <i class="fas fa-chart-bar mr-2"></i>
                 Voir le rapport de qualité
             </a>
         </div>
-        <div class="col-md-6">
-            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-block">
-                <i class="fas fa-home mr-2"></i>
-                Retour au tableau de bord
-            </a>
-        </div>
     </div>
+    @if (count($entries) > 0)
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-block">
+                    <i class="fas fa-home mr-2"></i>
+                    Retour au tableau de bord
+                </a>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection

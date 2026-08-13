@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CrudController;
 use App\Http\Controllers\TimetableSessionController;
 use App\Http\Controllers\TimetableQualityController;
+use App\Http\Controllers\TimetableExportController;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,8 @@ Route::middleware('auth')->group(function () {
     });
     Route::post('/timetable/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate');
     Route::get('/timetable/{semester}', [DashboardController::class, 'show'])->name('timetable.show');
+    Route::get('/timetable/{semester}/export-pdf', [TimetableExportController::class, 'pdf'])->name('timetable.export.pdf');
+    Route::get('/timetable/{semester}/export-excel', [TimetableExportController::class, 'excel'])->name('timetable.export.excel');
     
     // Timetable Quality Reports
     Route::get('/timetable/{semesterId}/quality', [TimetableQualityController::class, 'show'])->name('timetable.quality');
