@@ -56,7 +56,15 @@ class AutoGenerateTimetable
             }
 
             foreach ($groups as $group) {
-                $remaining = $needed;
+                // Tenir compte des sessions déjà générées pour ce module + ce groupe
+                // + ce semestre : si la génération est relancée sans suppression, le
+                // générateur ne doit pas ajouter de sessions au-delà du quota.
+                $existing = (int) DB::table('timetable_sessions')
+                    ->where('module_id', $module->id)
+                    ->where('student_group_id', $group->id)
+                    ->where('semester_id', $semesterId)
+                    ->count();
+                $remaining = max(0, $needed - $existing);
                 foreach ($days as $day) foreach ($slots as $slot) {
                     if ($remaining === 0) break 2;
                     $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->exists('classroom_id', $r->id, $day->id, $slot->id, $semesterId));
