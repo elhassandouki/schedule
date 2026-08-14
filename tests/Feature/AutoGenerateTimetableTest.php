@@ -90,9 +90,9 @@ class AutoGenerateTimetableTest extends TestCase
         $data = $this->seedSemesterContext();
                 $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
         $this->assertTrue($report['success']);
-        // Volume horaire : ceil(weekly_hours 1 × semaines 15 / durée créneau 2h) = 8 sessions par groupe × 2 groupes = 16
-        $this->assertSame(16, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
-        $this->assertSame(16, $report['sessions_generated']);
+        // Volume horaire hebdomadaire : ceil(weekly_hours 1 / durée créneau 2h) = 1 session par groupe × 2 groupes = 2
+        $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
+        $this->assertSame(2, $report['sessions_generated']);
     }
 
     public function test_generation_is_scoped_to_the_selected_semester_and_respects_existing_sessions(): void
@@ -130,11 +130,11 @@ class AutoGenerateTimetableTest extends TestCase
         ]);
 
                 $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
-        // Volume horaire : ceil(weekly_hours 1 × semaines 15 / durée créneau 2h) = 8 sessions par groupe × 2 groupes = 16
-        $this->assertSame(16, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
+        // Volume horaire hebdomadaire : ceil(weekly_hours 1 / durée créneau 2h) = 1 session par groupe × 2 groupes = 2
+        $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
         // 1 session préexistante : le générateur du semestre S1 ne touche pas S2
         $this->assertSame(1, DB::table('timetable_sessions')->where('semester_id', $otherSemester->id)->count());
-        $this->assertSame(16, $report['sessions_generated']);
+        $this->assertSame(2, $report['sessions_generated']);
     }
 
     public function test_generation_reports_skips_and_conflicts(): void

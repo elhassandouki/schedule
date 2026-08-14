@@ -26,8 +26,6 @@ class AutoGenerateTimetable
         $generated = $skipped = [];
         $totalGenerated = $totalSkipped = 0;
 
-        // Nombre de semaines d'enseignement du semestre (par défaut 15).
-        $weeksCount = (int) ($semester->weeks_count ?? 15);
         $slotsDuration = [];
         foreach ($slots as $slot) {
             $slotsDuration[$slot->id] = ($this->minutes($slot->ends_at) - $this->minutes($slot->starts_at)) / 60;
@@ -41,13 +39,15 @@ class AutoGenerateTimetable
                 ->select('users.id')->get();
 
             // Volume horaire : weekly_hours = heures PAR SEMAINE.
-            // Nombre de sessions nécessaires = ceil(weekly_hours × semaines / durée_moyenne_du_créneau).
+            // L'emploi du temps est un planning récurrent hebdomadaire : le nombre de
+            // sessions = weekly_hours ÷ durée_moyenne_du_créneau (arrondi à l'entier
+            // supérieur). Ex : module 3h/semaine avec des créneaux de 1h30 → 2 sessions.
+            // weeks_count (semestres) n'influence plus le nombre de sessions générées.
             $weeklyHours = (float) ($module->weekly_hours ?? 0);
             $defaultSlotDuration = $slots->avg(fn ($s) => $slotsDuration[$s->id]) ?: 2;
-            $totalHours = $weeklyHours * $weeksCount;
             $needed = $weeklyHours > 0
-                ? max(1, (int) ceil($totalHours / $defaultSlotDuration))
-                : max(1, (int) ceil($weeklyHours / $defaultSlotDuration));
+                ? max(1, (int) ceil($weeklyHours / $defaultSlotDuration))
+                : 0;
 
             if ($professors->isEmpty()) {
                 $skipped[$module->id][] = 'No professor is assigned to this module';
