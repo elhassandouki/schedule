@@ -25,6 +25,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/gestion/utilisateurs/{user}/modifier', [UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/gestion/utilisateurs/{user}', [UserManagementController::class, 'update'])->name('users.update');
         Route::delete('/gestion/utilisateurs/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+
+        // Paramètres de l'établissement (nom, adresse, contact, logo)
+        Route::get('/gestion/parametres', [\App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/gestion/parametres', [\App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+        Route::delete('/gestion/parametres/logo', [\App\Http\Controllers\SettingsController::class, 'removeLogo'])->name('settings.logo.remove');
     });
 
     // Gestion fine des rôles & permissions (super_admin uniquement)

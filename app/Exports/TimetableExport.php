@@ -62,7 +62,10 @@ class SummarySheet implements FromCollection, WithTitle
 
     public function collection()
     {
+        $estab = \App\Models\Setting::allValues();
+
         $rows = collect([
+            ['Établissement', $estab['establishment_name']],
             ['Emploi du temps', $this->data['program'] . ' — ' . $this->data['semester']->name],
             ['Année universitaire', $this->data['academicYear']],
             ['Exporté le', now()->format('d/m/Y H:i')],
@@ -94,7 +97,10 @@ class GroupSheet implements FromCollection, WithTitle
 
     public function collection()
     {
+        $estab = \App\Models\Setting::allValues();
+
         $rows = collect([
+            ['Établissement', $estab['establishment_name']],
             ['Emploi du temps — ' . $this->groupName],
             ['Filière', $this->data['program']],
             ['Semestre', $this->data['semester']->name],

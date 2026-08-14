@@ -13,9 +13,31 @@
     tr:nth-child(even) td { background: #f4f6fb; }
     .group-title { font-size: 11px; font-weight: bold; color: #2c3e80; margin: 8px 0 3px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
     .footer { margin-top: 6px; color: #777; font-size: 8.5px; }
+    .estab-header { display: table; width: 100%; border-bottom: 2px solid #2c3e80; margin-bottom: 6px; padding-bottom: 4px; }
+    .estab-logo { display: table-cell; width: 60px; vertical-align: middle; }
+    .estab-info { display: table-cell; vertical-align: middle; padding-left: 10px; }
+    .estab-name { font-size: 12px; font-weight: bold; color: #2c3e80; }
+    .estab-contact { color: #666; font-size: 9px; }
 </style>
 </head>
 <body>
+    @php
+        $estab = \App\Models\Setting::allValues();
+        $estabLogo = $estab['logo_path'] ? public_path('storage/' . $estab['logo_path']) : null;
+    @endphp
+    <div class="estab-header">
+        @if($estabLogo && file_exists($estabLogo))
+            <img src="{{ $estabLogo }}" class="estab-logo" height="55">
+        @endif
+        <div class="estab-info">
+            <div class="estab-name">{{ $estab['establishment_name'] }}</div>
+            <div class="estab-contact">
+                @if($estab['establishment_address']){{ $estab['establishment_address'] }}@endif
+                @if($estab['establishment_phone']) &nbsp;·&nbsp; Tél : {{ $estab['establishment_phone'] }}@endif
+                @if($estab['establishment_email']) &nbsp;·&nbsp; {{ $estab['establishment_email'] }}@endif
+            </div>
+        </div>
+    </div>
     <h1>Emploi du temps — {{ $program }}</h1>
     <div class="meta">
         {{ $semester->name }} &nbsp;·&nbsp; Année universitaire {{ $academicYear }} &nbsp;·&nbsp;

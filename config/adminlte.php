@@ -422,6 +422,13 @@ return [
             'can' => 'manage roles',
         ],
         [
+            'text' => 'Paramètres',
+            'url' => 'gestion/parametres',
+            'icon' => 'fas fa-fw fa-cog',
+            'active' => ['gestion/parametres*'],
+            'can' => 'manage users',
+        ],
+        [
             'text' => 'Enseignants',
             'url' => 'gestion/professeurs',
             'icon' => 'fas fa-fw fa-chalkboard-teacher',
