@@ -1,10 +1,32 @@
 <?php
 namespace App\Models;
+use App\Services\SessionConflictChecker;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TimetableSession extends Model {
     protected $guarded = [];
+
+    /**
+     * Garantie Laravel-only : à chaque création, le modèle refuse toute session
+     * dont la salle, le professeur ou le groupe chevauche (horaires réels) une
+     * session existante le même jour. Aucun chevauchement possible, y compris
+     * entre créneaux qui se chevauchent partiellement (timeslot_id différents).
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $session) {
+            $required = ['module_id', 'semester_id', 'professor_id', 'classroom_id', 'student_group_id', 'day_id', 'timeslot_id'];
+            foreach ($required as $field) {
+                if (blank($session->{$field})) return;
+            }
+            // Le générateur et le formulaire créent leurs sessions après contrôle ;
+            // ce hook est la dernière ligne de défense (inserts massés, commandes,
+            // tinker...) : il lève une exception si un chevauchement réel existe.
+            $checker = app(SessionConflictChecker::class);
+            $checker->validate($session->only($required));
+        });
+    }
     
     public function module(): BelongsTo {
         return $this->belongsTo(Module::class);

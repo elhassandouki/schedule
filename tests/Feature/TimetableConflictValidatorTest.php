@@ -143,7 +143,7 @@ class TimetableConflictValidatorTest extends TestCase
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $slot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
         TimetableSession::create(['semester_id' => $semester->id, 'module_id' => $module->id, 'professor_id' => $teacher->id, 'classroom_id' => $room->id, 'student_group_id' => $group->id, 'day_id' => $day->id, 'timeslot_id' => $slot->id]);
-        $this->expectException(QueryException::class);
+        $this->expectException(ValidationException::class);
         TimetableSession::create(['semester_id' => $semester->id, 'module_id' => $module->id, 'professor_id' => $teacher->id, 'classroom_id' => $otherRoom->id, 'student_group_id' => $otherGroup->id, 'day_id' => $day->id, 'timeslot_id' => $slot->id]);
     }
 

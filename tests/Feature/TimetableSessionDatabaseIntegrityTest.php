@@ -64,7 +64,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'timeslot_id' => $data['timeslot']->id,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
         TimetableSession::create([
             'module_id' => $data['subject']->id,
             'professor_id' => $data['teacher']->id,
@@ -89,7 +89,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'timeslot_id' => $data['timeslot']->id,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
         TimetableSession::create([
             'module_id' => $data['subject']->id,
             'professor_id' => $data['teacher2']->id,
@@ -114,7 +114,7 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'timeslot_id' => $data['timeslot']->id,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
         TimetableSession::create([
             'module_id' => $data['subject']->id,
             'professor_id' => $data['teacher2']->id,
@@ -130,7 +130,8 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
     {
         $data = $this->seedSemesterContext();
         $this->expectException(\Illuminate\Database\QueryException::class);
-        TimetableSession::create([
+        // Insertion brute : le hook Eloquent ne tourne pas, seul le moteur SQL valide la clé étrangère.
+        DB::table('timetable_sessions')->insert([
             'module_id' => 999999,
             'professor_id' => $data['teacher']->id,
             'classroom_id' => $data['classroom']->id,
@@ -138,6 +139,8 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
             'semester_id' => $data['semester']->id,
             'day_id' => $data['day']->id,
             'timeslot_id' => $data['timeslot']->id,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
@@ -145,5 +148,31 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
     {
         $this->assertFalse(DB::getSchemaBuilder()->hasColumn('timetable_sessions', 'subject_id'));
         $this->assertFalse(DB::getSchemaBuilder()->hasColumn('timetable_sessions', 'teacher_id'));
+    }
+
+    public function test_eloquent_model_hook_blocks_any_overlapping_session(): void
+    {
+        $data = $this->seedSemesterContext();
+        TimetableSession::create([
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
+            'classroom_id' => $data['classroom']->id,
+            'student_group_id' => $data['group']->id,
+            'semester_id' => $data['semester']->id,
+            'day_id' => $data['day']->id,
+            'timeslot_id' => $data['timeslot']->id,
+        ]);
+        // Toute création Eloquent (hors formulaire, hors générateur) qui chevauche
+        // une session existante est refusée en PHP par le hook du modèle.
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        TimetableSession::create([
+            'module_id' => $data['subject']->id,
+            'professor_id' => $data['teacher']->id,
+            'classroom_id' => $data['classroom']->id,
+            'student_group_id' => $data['group']->id,
+            'semester_id' => $data['semester']->id,
+            'day_id' => $data['day']->id,
+            'timeslot_id' => $data['timeslot']->id,
+        ]);
     }
 }

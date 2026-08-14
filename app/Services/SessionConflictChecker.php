@@ -13,17 +13,35 @@ class SessionConflictChecker
         // horaires chevauchent le créneau candidat (même si timeslot_id différent) sont
         // considérées en conflit : une salle / prof / groupe ne peut jamais être
         // double-bookée, y compris entre créneaux qui se chevauchent.
+        $endsAt = DB::table('timeslots')->where('id', $attributes['timeslot_id'])->value('ends_at');
+        $startsAt = DB::table('timeslots')->where('id', $attributes['timeslot_id'])->value('starts_at');
         $base = TimetableSession::where('semester_id', $attributes['semester_id'])->where('day_id', $attributes['day_id'])
             ->join('timeslots', 'timeslots.id', '=', 'timetable_sessions.timeslot_id')
-            ->where('timeslots.starts_at', '<', DB::table('timeslots')->where('id', $attributes['timeslot_id'])->value('ends_at'))
-            ->where('timeslots.ends_at', '>', DB::table('timeslots')->where('id', $attributes['timeslot_id'])->value('starts_at'))
+            ->where('timeslots.starts_at', '<', $endsAt)
+            ->where('timeslots.ends_at', '>', $startsAt)
             ->select('timetable_sessions.*')
             ->when($ignore, fn ($q) => $q->where('timetable_sessions.id', '!=', $ignore->id));
         $errors = [];
-        foreach (['professor_id' => 'professeur', 'classroom_id' => 'salle', 'student_group_id' => 'groupe'] as $field => $label)
-            if ((clone $base)->where("timetable_sessions.{$field}", $attributes[$field])->exists()) $errors[$field] = "Conflit : ce {$label} est déjà occupé dans ce créneau.";
+        foreach (['professor_id' => 'professeur', 'classroom_id' => 'salle', 'student_group_id' => 'groupe'] as $field => $label) {
+            if ((clone $base)->where("timetable_sessions.{$field}", $attributes[$field])->exists()) {
+                $errors[$field] = "Conflit : ce {$label} est déjà occupé dans ce créneau.";
+            }
+        }
+        if ($errors) throw ValidationException::withMessages($errors);
+    }
 
-        $module = Module::find($attributes['module_id']); $group = StudentGroup::find($attributes['student_group_id']); $room = Classroom::find($attributes['classroom_id']);
+    /**
+     * Règles métier du formulaire de saisie manuelle : le module doit appartenir
+     * au semestre, le prof doit pouvoir enseigner le module et la salle doit
+     * contenir le groupe. Ces contrôles restent au niveau de la validation
+     * HTTP ; le hook Eloquent du modèle porte uniquement le chevauchement.
+     */
+    public function validateBusinessRules(array $attributes): void
+    {
+        $module = Module::find($attributes['module_id']);
+        $group = StudentGroup::find($attributes['student_group_id']);
+        $room = Classroom::find($attributes['classroom_id']);
+        $errors = [];
         if (!$module || $module->semester_id !== (int) $attributes['semester_id']) $errors['module_id'] = 'Le module doit appartenir au semestre choisi.';
         if (!$group || $group->semester_id !== (int) $attributes['semester_id']) $errors['student_group_id'] = 'Le groupe doit appartenir au semestre choisi.';
         if (!DB::table('professor_module')->where(['professor_id' => $attributes['professor_id'], 'module_id' => $attributes['module_id']])->exists()) $errors['professor_id'] = 'Ce professeur ne peut pas enseigner ce module.';

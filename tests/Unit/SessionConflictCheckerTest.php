@@ -170,7 +170,7 @@ class SessionConflictCheckerTest extends TestCase
         $largeClassroom = Classroom::create(['name' => 'A103', 'capacity' => 50, 'type' => 'classroom']);
 
         try {
-            $checker->validate([
+            $checker->validateBusinessRules([
                 'semester_id' => $data['semester']->id,
                 'module_id' => $data['subject']->id,
                 'professor_id' => $data['teacher']->id,
@@ -185,7 +185,7 @@ class SessionConflictCheckerTest extends TestCase
             $this->assertStringContainsString('La capacité', $exception->errors()['classroom_id'][0]);
         }
 
-        $checker->validate([
+        $checker->validateBusinessRules([
             'semester_id' => $data['semester']->id,
             'module_id' => $data['subject']->id,
             'professor_id' => $data['teacher']->id,

@@ -10,5 +10,6 @@ class TimetableConflictValidator
     public function validate(array $attributes, ?TimetableSession $ignore = null): void
     {
         app(SessionConflictChecker::class)->validate($attributes, $ignore);
+        app(SessionConflictChecker::class)->validateBusinessRules($attributes);
     }
 }
