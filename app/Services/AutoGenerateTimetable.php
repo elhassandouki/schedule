@@ -75,13 +75,18 @@ class AutoGenerateTimetable
                     ->selectRaw("COALESCE(SUM($minutesExpr), 0) as total")->value('total'));
                 $remainingMinutes = max(0, $budgetMinutes - $consumedMinutes);
                 foreach ($days as $day) foreach ($slots as $slot) {
-                    $slotMinutes = $this->minutes($slot->ends_at) - $this->minutes($slot->starts_at);
+                    $slotStart = $this->minutes($slot->starts_at);
+                    $slotEnd = $this->minutes($slot->ends_at);
+                    $slotMinutes = $slotEnd - $slotStart;
                     if ($slotMinutes <= 0 || $remainingMinutes < $slotMinutes) continue 2;
-                    $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->exists('classroom_id', $r->id, $day->id, $slot->id, $semesterId));
+                    // Contrôle de conflit temporel (chevauchement horaire réel, pas seulement
+                    // timeslot_id identique) : deux créneaux aux horaires qui se chevauchent
+                    // ne peuvent pas partager la même salle, le même prof ou le même groupe.
+                    $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId));
                     if (!$room) continue;
-                    $professor = $professors->first(fn ($p) => !$this->exists('professor_id', $p->id, $day->id, $slot->id, $semesterId)
+                    $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         && $this->professorIsAvailable($p->id, $day->position, $slot));
-                    if (!$professor || $this->exists('student_group_id', $group->id, $day->id, $slot->id, $semesterId)
+                    if (!$professor || $this->overlaps('student_group_id', $group->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         || !$this->groupCanStudy($group->id, $day->position, $day->id, $slot, $semesterId)) continue;
 
                     DB::table('timetable_sessions')->insert([
@@ -105,10 +110,27 @@ class AutoGenerateTimetable
             'skipped_per_module' => $skipped];
     }
 
-    private function exists(string $column, int $id, int $dayId, int $slotId, int $semesterId): bool
+    /**
+     * Retourne true si une session existante utilise la même ressource (salle, prof ou
+     * groupe) sur le même jour avec des horaires qui CHEVAUCHENT le créneau candidat.
+     * La comparaison est temporelle (starts_at < fin AND ends_at > début), donc des
+     * créneaux aux horaires qui se chevauchent mais avec des timeslot_id différents
+     * déclenchent aussi le conflit : aucune salle n'est jamais double-bookée.
+     */
+    private function overlaps(string $column, int $id, int $dayId, int $startMinute, int $endMinute, int $semesterId): bool
     {
-        return DB::table('timetable_sessions')->where($column, $id)->where('day_id', $dayId)
-            ->where('timeslot_id', $slotId)->where('semester_id', $semesterId)->exists();
+        $start = $this->formatTime($startMinute);
+        $end = $this->formatTime($endMinute);
+        return DB::table('timetable_sessions as s')
+            ->join('timeslots as t', 't.id', '=', 's.timeslot_id')
+            ->where($column, $id)->where('s.day_id', $dayId)->where('s.semester_id', $semesterId)
+            ->where('t.starts_at', '<', $end)->where('t.ends_at', '>', $start)
+            ->exists();
+    }
+
+    private function formatTime(int $minute): string
+    {
+        return sprintf('%02d:%02d', intdiv($minute, 60), $minute % 60);
     }
 
     private function professorIsAvailable(int $professorId, int $dayOfWeek, object $slot): bool

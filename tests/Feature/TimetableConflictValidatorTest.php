@@ -92,6 +92,31 @@ class TimetableConflictValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_overlapping_slots_in_the_same_room_are_rejected(): void
+    {
+        $semester = $this->semester();
+        $module = Module::create([
+            'program_id' => $semester->program_id, 'semester_id' => $semester->id,
+            'name' => 'Module X', 'code' => 'MX', 'weekly_hours' => 2,
+        ]);
+        $teacher = User::create(['name' => 'Teacher T2', 'email' => 'tt2@school.local', 'password' => bcrypt('password'), 'role' => 'prof']);
+        $room = Classroom::create(['name' => 'Bloc A', 'capacity' => 40]);
+        $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'capacity' => 30]);
+        $day = SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);
+        // Deux créneaux qui se chevauchent partiellement : 16:00-17:30 et 16:30-18:00.
+        $slotA = Timeslot::create(['name' => '16:00-17:30', 'starts_at' => '16:00', 'ends_at' => '17:30', 'position' => 5]);
+        $slotB = Timeslot::create(['name' => '16:30-18:00', 'starts_at' => '16:30', 'ends_at' => '18:00', 'position' => 6]);
+        TimetableSession::create([
+            'module_id' => $module->id, 'professor_id' => $teacher->id, 'classroom_id' => $room->id,
+            'student_group_id' => $group->id, 'semester_id' => $semester->id, 'day_id' => $day->id, 'timeslot_id' => $slotA->id,
+        ]);
+        $this->expectException(ValidationException::class);
+        (new TimetableConflictValidator)->validate([
+            'module_id' => $module->id, 'professor_id' => $teacher->id, 'classroom_id' => $room->id,
+            'student_group_id' => $group->id, 'semester_id' => $semester->id, 'day_id' => $day->id, 'timeslot_id' => $slotB->id,
+        ]);
+    }
+
     public function test_database_unique_constraint_blocks_a_teacher_double_booking(): void
     {
         $semester = $this->semester();
