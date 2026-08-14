@@ -31,6 +31,14 @@ class AutoGenerateTimetable
             $slotsDuration[$slot->id] = ($this->minutes($slot->ends_at) - $this->minutes($slot->starts_at)) / 60;
         }
 
+        // Nombre de sessions placées par salle DANS LA GÉNÉRATION COURANTE :
+        // il inclut les sessions préexistantes (re-génération) et celles créées
+        // à chaque placement, pour que la répartition reste équilibrée.
+        $this->roomSessionCount = DB::table('timetable_sessions')
+            ->where('semester_id', $semesterId)
+            ->groupBy('classroom_id')->selectRaw('classroom_id, COUNT(*) as total')
+            ->pluck('total', 'classroom_id')->map(fn ($v) => (int) $v)->all();
+
         foreach ($modules as $module) {
             $generated[$module->id] = 0;
             $skipped[$module->id] = [];
@@ -82,7 +90,16 @@ class AutoGenerateTimetable
                     // Contrôle de conflit temporel (chevauchement horaire réel, pas seulement
                     // timeslot_id identique) : deux créneaux aux horaires qui se chevauchent
                     // ne peuvent pas partager la même salle, le même prof ou le même groupe.
-                    $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId));
+                    // Répartition des salles : parmi les salles libres sur ce créneau, on
+                    // choisit celle qui a le moins de sessions placées dans la génération
+                    // courante (équilibrage), et à égalité la plus petite capacité suffisante
+                    // pour le groupe (juste taille). Le générateur ne reste donc jamais
+                    // collé sur une seule salle.
+                    $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId));
+                    if ($freeRooms->isEmpty()) continue;
+                    $room = $freeRooms->sortBy(
+                        fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
+                    )->first();
                     if (!$room) continue;
                     $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         && $this->professorIsAvailable($p->id, $day->position, $slot));
@@ -95,6 +112,7 @@ class AutoGenerateTimetable
                         'classroom_id' => $room->id, 'day_id' => $day->id, 'timeslot_id' => $slot->id,
                         'created_at' => now(), 'updated_at' => now(),
                     ]);
+                    $this->roomSessionCount[$room->id] = ($this->roomSessionCount[$room->id] ?? 0) + 1;
                     $generated[$module->id]++; $totalGenerated++;
                     $remainingMinutes -= $slotMinutes;
                 }
