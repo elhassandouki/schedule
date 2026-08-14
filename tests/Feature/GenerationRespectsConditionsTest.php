@@ -31,8 +31,11 @@ class GenerationRespectsConditionsTest extends TestCase
             $day = \DB::table('days')->where('id',$s->day_id)->value('position');
             $this->assertEquals(1, $day, 'Session hors jour autorisé du groupe');
         }
-        // Le module ne peut pas être placé (prof dispo mardi, groupe lundi) → skipped
-        $this->assertTrue(str_contains(json_encode($r), "Not enough available slots"));
+        // Le module ne peut pas être placé (prof dispo mardi, groupe lundi) → skipped.
+        // Avec le budget minute strict, le rapport de skip indique les minutes
+        // résiduelles du module (weekly_hours du module 1 × 60) non placées.
+        $this->assertTrue(str_contains(json_encode($r), "Could not fit the remaining")
+            || str_contains(json_encode($r), "Not enough available slots"));
     }
 
     public function test_sessions_respect_group_conditions_on_generated_data(): void

@@ -39,19 +39,21 @@ class AutoGenerateTimetable
                 ->select('users.id')->get();
 
             // Volume horaire : weekly_hours = heures PAR SEMAINE.
-            // L'emploi du temps est un planning récurrent hebdomadaire : le nombre de
-            // sessions = weekly_hours ÷ durée_moyenne_du_créneau (arrondi à l'entier
-            // supérieur). Ex : module 3h/semaine avec des créneaux de 1h30 → 2 sessions.
-            // weeks_count (semestres) n'influence plus le nombre de sessions générées.
+            // L'emploi du temps est un planning récurrent hebdomadaire. Le générateur
+            // respecte STRICTEMENT weekly_hours : le budget hebdomadaire est calculé en
+            // minutes (weekly_hours × 60) et chaque créneau placé consomme sa durée
+            // RÉELLE (fin − début du timeslot). Un créneau n'est placé que si sa durée
+            // complète tient dans le budget restant : le total hebdomadaire d'un module
+            // ne dépasse donc jamais weekly_hours. Ex : module 3h/semaine avec des
+            // créneaux de 1h30 → 2 sessions (3h = 180 min, 2 × 90 min). weeks_count
+            // (semestres) n'influence pas le nombre de sessions générées.
             $weeklyHours = (float) ($module->weekly_hours ?? 0);
-            $defaultSlotDuration = $slots->avg(fn ($s) => $slotsDuration[$s->id]) ?: 2;
-            $needed = $weeklyHours > 0
-                ? max(1, (int) ceil($weeklyHours / $defaultSlotDuration))
-                : 0;
+            $budgetMinutes = (int) round($weeklyHours * 60);
+            if ($budgetMinutes <= 0) continue;
 
             if ($professors->isEmpty()) {
                 $skipped[$module->id][] = 'No professor is assigned to this module';
-                $totalSkipped += $needed * $groups->count();
+                $totalSkipped += $groups->count();
                 continue;
             }
 
@@ -59,14 +61,22 @@ class AutoGenerateTimetable
                 // Tenir compte des sessions déjà générées pour ce module + ce groupe
                 // + ce semestre : si la génération est relancée sans suppression, le
                 // générateur ne doit pas ajouter de sessions au-delà du quota.
-                $existing = (int) DB::table('timetable_sessions')
-                    ->where('module_id', $module->id)
-                    ->where('student_group_id', $group->id)
-                    ->where('semester_id', $semesterId)
-                    ->count();
-                $remaining = max(0, $needed - $existing);
+                // Budget hebdomadaire restant pour ce module + ce groupe. On soustrait
+                // les minutes déjà consommées par les sessions existantes de ce groupe
+                // (idempotence : une re-génération ne dépasse jamais weekly_hours).
+                $minutesExpr = DB::getDriverName() === 'sqlite'
+                    ? 'ROUND((julianday(t.ends_at) - julianday(t.starts_at)) * 1440)'
+                    : 'TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at)) / 60';
+                $consumedMinutes = (int) (DB::table('timetable_sessions as ts')
+                    ->join('timeslots as t', 't.id', '=', 'ts.timeslot_id')
+                    ->where('ts.module_id', $module->id)
+                    ->where('ts.student_group_id', $group->id)
+                    ->where('ts.semester_id', $semesterId)
+                    ->selectRaw("COALESCE(SUM($minutesExpr), 0) as total")->value('total'));
+                $remainingMinutes = max(0, $budgetMinutes - $consumedMinutes);
                 foreach ($days as $day) foreach ($slots as $slot) {
-                    if ($remaining === 0) break 2;
+                    $slotMinutes = $this->minutes($slot->ends_at) - $this->minutes($slot->starts_at);
+                    if ($slotMinutes <= 0 || $remainingMinutes < $slotMinutes) continue 2;
                     $room = $rooms->first(fn ($r) => $r->capacity >= $group->capacity && !$this->exists('classroom_id', $r->id, $day->id, $slot->id, $semesterId));
                     if (!$room) continue;
                     $professor = $professors->first(fn ($p) => !$this->exists('professor_id', $p->id, $day->id, $slot->id, $semesterId)
@@ -80,9 +90,13 @@ class AutoGenerateTimetable
                         'classroom_id' => $room->id, 'day_id' => $day->id, 'timeslot_id' => $slot->id,
                         'created_at' => now(), 'updated_at' => now(),
                     ]);
-                    $generated[$module->id]++; $totalGenerated++; $remaining--;
+                    $generated[$module->id]++; $totalGenerated++;
+                    $remainingMinutes -= $slotMinutes;
                 }
-                if ($remaining) { $totalSkipped += $remaining; $skipped[$module->id][] = "Not enough available slots for {$group->name}"; }
+                if ($remainingMinutes > 0 && $consumedMinutes < $budgetMinutes) {
+                    $totalSkipped += $remainingMinutes;
+                    $skipped[$module->id][] = "Could not fit the remaining {$remainingMinutes} minutes for {$group->name}";
+                }
             }
         }
 

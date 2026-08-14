@@ -53,7 +53,7 @@ class LegacyScheduleGeneratorTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG001',
-            'weekly_hours' => 1,
+            'weekly_hours' => 2,
         ]);
         $professor->modules()->attach($module->id);
         DB::table('professor_availabilities')->insert([

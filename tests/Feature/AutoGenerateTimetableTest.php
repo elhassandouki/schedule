@@ -45,7 +45,7 @@ class AutoGenerateTimetableTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG',
-            'weekly_hours' => 1,
+            'weekly_hours' => 2,
         ]);
         $professor = User::create([
             'name' => 'Prof A',
@@ -90,7 +90,8 @@ class AutoGenerateTimetableTest extends TestCase
         $data = $this->seedSemesterContext();
                 $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
         $this->assertTrue($report['success']);
-        // Volume horaire hebdomadaire : ceil(weekly_hours 1 / durée créneau 2h) = 1 session par groupe × 2 groupes = 2
+        // Respect strict de weekly_hours : budget minute = 2h × 60 ; créneaux de 2h (120 min)
+        // → 1 session par groupe × 2 groupes = 2, sans jamais dépasser 2h/semaine.
         $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
         $this->assertSame(2, $report['sessions_generated']);
     }
@@ -113,7 +114,7 @@ class AutoGenerateTimetableTest extends TestCase
             'semester_id' => $otherSemester->id,
             'code' => 'PHY',
             'name' => 'Physique',
-            'weekly_hours' => 1,
+            'weekly_hours' => 2,
         ]);
         $data['professor']->modules()->attach($otherModule->id);
         $otherGroup = StudentGroup::create(['semester_id' => $otherSemester->id, 'name' => 'G2', 'capacity' => 30]);
@@ -130,7 +131,8 @@ class AutoGenerateTimetableTest extends TestCase
         ]);
 
                 $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
-        // Volume horaire hebdomadaire : ceil(weekly_hours 1 / durée créneau 2h) = 1 session par groupe × 2 groupes = 2
+        // Respect strict de weekly_hours : budget minute = 2h × 60 ; créneaux de 2h (120 min)
+        // → 1 session par groupe × 2 groupes = 2, sans jamais dépasser 2h/semaine.
         $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
         // 1 session préexistante : le générateur du semestre S1 ne touche pas S2
         $this->assertSame(1, DB::table('timetable_sessions')->where('semester_id', $otherSemester->id)->count());
