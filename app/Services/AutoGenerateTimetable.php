@@ -26,13 +26,28 @@ class AutoGenerateTimetable
         $generated = $skipped = [];
         $totalGenerated = $totalSkipped = 0;
 
+        // Nombre de semaines d'enseignement du semestre (par défaut 15).
+        $weeksCount = (int) ($semester->weeks_count ?? 15);
+        $slotsDuration = [];
+        foreach ($slots as $slot) {
+            $slotsDuration[$slot->id] = ($this->minutes($slot->ends_at) - $this->minutes($slot->starts_at)) / 60;
+        }
+
         foreach ($modules as $module) {
             $generated[$module->id] = 0;
             $skipped[$module->id] = [];
             $professors = DB::table('professor_module')->where('module_id', $module->id)
                 ->join('users', 'users.id', '=', 'professor_module.professor_id')
                 ->select('users.id')->get();
-            $needed = max(1, (int) ceil(($module->weekly_hours ?? 2) / 2));
+
+            // Volume horaire : weekly_hours = heures PAR SEMAINE.
+            // Nombre de sessions nécessaires = ceil(weekly_hours × semaines / durée_moyenne_du_créneau).
+            $weeklyHours = (float) ($module->weekly_hours ?? 0);
+            $defaultSlotDuration = $slots->avg(fn ($s) => $slotsDuration[$s->id]) ?: 2;
+            $totalHours = $weeklyHours * $weeksCount;
+            $needed = $weeklyHours > 0
+                ? max(1, (int) ceil($totalHours / $defaultSlotDuration))
+                : max(1, (int) ceil($weeklyHours / $defaultSlotDuration));
 
             if ($professors->isEmpty()) {
                 $skipped[$module->id][] = 'No professor is assigned to this module';

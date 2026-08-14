@@ -45,7 +45,7 @@ class AutoGenerateTimetableTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG',
-            'weekly_hours' => 2,
+            'weekly_hours' => 1,
         ]);
         $professor = User::create([
             'name' => 'Prof A',
@@ -54,28 +54,33 @@ class AutoGenerateTimetableTest extends TestCase
             'role' => 'prof',
         ]);
         $professor->modules()->attach($module->id);
-        DB::table('professor_availabilities')->insert([
-            'professor_id' => $professor->id,
-            'day_of_week' => 1,
-            'start_minute' => 480,
-            'end_minute' => 1020,
-            'available' => true,
-        ]);
-        DB::table('professor_availabilities')->insert([
-            'professor_id' => $professor->id,
-            'day_of_week' => 2,
-            'start_minute' => 480,
-            'end_minute' => 1020,
-            'available' => true,
-        ]);
+        // Prof disponible tous les jours ouvrables (1-5) de 8h00 à 18h00.
+        foreach (range(1, 5) as $day) {
+            DB::table('professor_availabilities')->insert([
+                'professor_id' => $professor->id,
+                'day_of_week' => $day,
+                'start_minute' => 480,
+                'end_minute' => 1080,
+                'available' => true,
+            ]);
+        }
 
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $group2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'capacity' => 30]);
         Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
-        SchoolDay::create(['name' => 'Monday', 'position' => 1]);
-        SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);
-        Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
-        Timeslot::create(['name' => '10:00-12:00', 'starts_at' => '10:00', 'ends_at' => '12:00', 'position' => 2]);
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        foreach ($days as $pos => $day) {
+            SchoolDay::create(['name' => $day, 'position' => $pos + 1]);
+        }
+        $slots = [
+            ['08:00-10:00', '08:00', '10:00'],
+            ['10:00-12:00', '10:00', '12:00'],
+            ['13:00-15:00', '13:00', '15:00'],
+            ['15:00-17:00', '15:00', '17:00'],
+        ];
+        foreach ($slots as $pos => [$name, $start, $end]) {
+            Timeslot::create(['name' => $name, 'starts_at' => $start, 'ends_at' => $end, 'position' => $pos + 1]);
+        }
 
         return compact('semester', 'module', 'professor', 'group');
     }
@@ -83,11 +88,11 @@ class AutoGenerateTimetableTest extends TestCase
     public function test_generation_creates_timetable_sessions_for_the_selected_semester(): void
     {
         $data = $this->seedSemesterContext();
-        $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
-
+                $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
         $this->assertTrue($report['success']);
-        $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
-        $this->assertSame(2, $report['sessions_generated']);
+        // Volume horaire : ceil(weekly_hours 1 × semaines 15 / durée créneau 2h) = 8 sessions par groupe × 2 groupes = 16
+        $this->assertSame(16, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
+        $this->assertSame(16, $report['sessions_generated']);
     }
 
     public function test_generation_is_scoped_to_the_selected_semester_and_respects_existing_sessions(): void
@@ -99,20 +104,18 @@ class AutoGenerateTimetableTest extends TestCase
             'name' => 'S2',
             'number' => 2,
         ]);
+        // Le module de l'autre semestre partage le même volume horaire que celui
+        // du test : ses sessions sont générées séparément et ne comptent pas ici.
+        $otherSemester->weeks_count = 1;
+        $otherSemester->save();
         $otherModule = Module::create([
             'program_id' => $data['semester']->program_id,
+            'semester_id' => $otherSemester->id,
             'code' => 'PHY',
             'name' => 'Physique',
             'weekly_hours' => 1,
         ]);
         $data['professor']->modules()->attach($otherModule->id);
-        DB::table('professor_availabilities')->insert([
-            'professor_id' => $data['professor']->id,
-            'day_of_week' => 3,
-            'start_minute' => 480,
-            'end_minute' => 1020,
-            'available' => true,
-        ]);
         $otherGroup = StudentGroup::create(['semester_id' => $otherSemester->id, 'name' => 'G2', 'capacity' => 30]);
         DB::table('timetable_sessions')->insert([
             'module_id' => $otherModule->id,
@@ -126,31 +129,18 @@ class AutoGenerateTimetableTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
-
-        $this->assertSame(2, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
+                $report = (new AutoGenerateTimetable())->generate($data['semester']->id);
+        // Volume horaire : ceil(weekly_hours 1 × semaines 15 / durée créneau 2h) = 8 sessions par groupe × 2 groupes = 16
+        $this->assertSame(16, DB::table('timetable_sessions')->where('semester_id', $data['semester']->id)->count());
+        // 1 session préexistante : le générateur du semestre S1 ne touche pas S2
         $this->assertSame(1, DB::table('timetable_sessions')->where('semester_id', $otherSemester->id)->count());
-        $this->assertSame(2, $report['sessions_generated']);
+        $this->assertSame(16, $report['sessions_generated']);
     }
 
     public function test_generation_reports_skips_and_conflicts(): void
     {
         $data = $this->seedSemesterContext();
-        $otherModule = Module::create([
-            'program_id' => $data['semester']->program_id,
-            'semester_id' => $data['semester']->id,
-            'name' => 'Physique',
-            'code' => 'PHY',
-            'weekly_hours' => 1,
-        ]);
-        $data['professor']->modules()->attach($otherModule->id);
-        DB::table('professor_availabilities')->insert([
-            'professor_id' => $data['professor']->id,
-            'day_of_week' => 3,
-            'start_minute' => 480,
-            'end_minute' => 1020,
-            'available' => true,
-        ]);
+        // Un créneau est bloqué manuellement, le générateur doit l'éviter.
         DB::table('timetable_sessions')->insert([
             'module_id' => $data['module']->id,
             'professor_id' => $data['professor']->id,

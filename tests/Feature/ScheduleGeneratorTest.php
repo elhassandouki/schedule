@@ -45,6 +45,7 @@ class LegacyScheduleGeneratorTest extends TestCase
             'academic_year_id' => $academicYear,
             'name' => 'S1',
             'number' => 1,
+            'weeks_count' => 1,
         ]);
 
         $module = Module::create([
