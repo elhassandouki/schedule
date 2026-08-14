@@ -55,16 +55,26 @@
                         </h3>
                     </div>
 
-                    <form action="{{ route('timetable.generate') }}" method="post">
+                                <form action="{{ route('timetable.generate') }}" method="post" id="generate-form">
                         @csrf
 
                         <div class="card-body">
+                            <div class="form-group">
+                                <label for="program_id" class="font-weight-600">Filière</label>
+                                <select name="program_id" id="program_id" class="form-control">
+                                    <option value="">-- Sélectionner une filière --</option>
+                                    @foreach ($programs as $program)
+                                        <option value="{{ $program->id }}">{{ $program->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div class="form-group">
                                 <label for="semester_id" class="font-weight-600">Semestre</label>
                                 <select name="semester_id" id="semester_id" class="form-control" required>
                                     <option value="">-- Sélectionner un semestre --</option>
                                     @foreach ($semesters as $semester)
-                                        <option value="{{ $semester->id }}">
+                                        <option value="{{ $semester->id }}" data-program-id="{{ $semester->program_id }}">
                                             {{ $semester->program ?? 'N/A' }} — {{ $semester->name }}
                                         </option>
                                     @endforeach
@@ -417,6 +427,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Filtrage des semestres par filière dans le formulaire de génération.
+    const programSelect = document.getElementById('program_id');
+    const semesterSelect = document.getElementById('semester_id');
+    const semesterOptions = Array.from(semesterSelect.querySelectorAll('option[data-program-id]'));
+    function filterSemesters() {
+        const programId = (programSelect && programSelect.value) || '';
+        semesterOptions.forEach(function (option) {
+            option.style.display = programId === '' || option.dataset.programId === programId ? '' : 'none';
+        });
+        if (semesterSelect.value && semesterSelect.selectedOptions[0] && semesterSelect.selectedOptions[0].style.display === 'none') {
+            semesterSelect.selectedIndex = 0;
+        }
+    }
+    if (programSelect) programSelect.addEventListener('change', filterSemesters);
+    filterSemesters();
+
     const adminlteBlue = '#007bff';
     const chartFont = { family: "'Source Sans Pro', sans-serif", size: 13 };
     const tooltips = { mode: 'index', intersect: false, backgroundColor: 'rgba(0,0,0,0.8)', titleFont: chartFont, bodyFont: chartFont };

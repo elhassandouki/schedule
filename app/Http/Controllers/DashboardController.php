@@ -21,6 +21,7 @@ class DashboardController extends Controller
             ],
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
             'semesters' => DB::table('semesters')->join('programs', 'programs.id', '=', 'semesters.program_id')->select('semesters.*', 'programs.name as program')->get(),
+            'programs' => DB::table('programs')->orderBy('name')->get(),
             'reference' => [
                 'years' => DB::table('academic_years')->count(),
                 'departments' => DB::table('departments')->count(),
