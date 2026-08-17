@@ -31,6 +31,13 @@ class AutoGenerateTimetable
             $slotsDuration[$slot->id] = ($this->minutes($slot->ends_at) - $this->minutes($slot->starts_at)) / 60;
         }
 
+        // Nombre de sessions placées PAR JOUR/CRÉNEAU (chargement) pour répartir
+        // la semaine du professeur et du groupe de façon équilibrée.
+        $this->daySlotLoad = DB::table('timetable_sessions')
+            ->where('semester_id', $semesterId)
+            ->groupBy('day_id', 'timeslot_id')->selectRaw('day_id, timeslot_id, COUNT(*) as total')
+            ->get()->mapWithKeys(fn ($row) => ["{$row->day_id}.{$row->timeslot_id}" => (int) $row->total])->all();
+
         // Nombre de sessions placées par salle DANS LA GÉNÉRATION COURANTE :
         // il inclut les sessions préexistantes (re-génération) et celles créées
         // à chaque placement, pour que la répartition reste équilibrée.
@@ -93,11 +100,43 @@ class AutoGenerateTimetable
                     ->where('ts.semester_id', $semesterId)
                     ->selectRaw("COALESCE(SUM($minutesExpr), 0) as total")->value('total'));
                 $remainingMinutes = max(0, $budgetMinutes - $consumedMinutes);
+                // Ordre d'exploration : on essaie d'abord de répartir les séances du
+                // module sur des jours différents, et dans chaque jour sur des créneaux
+                // non consécutifs, pour éviter les journées trop chargées d'un même
+                // cours. On trie dynamiquement (jours/créneaux) selon la charge déjà
+                // posée dans la génération : les combinaisons les moins chargées
+                // (donc les jours/créneaux avec le moins de séances) sont essayées en
+                // premier.
+                $searchOrder = [];
                 foreach ($days as $day) foreach ($slots as $slot) {
+                    $searchOrder[] = [$day, $slot];
+                }
+                usort($searchOrder, function ($a, $b) use ($slotsDuration) {
+                    $loadA = $this->daySlotLoad["{$a[0]->id}.{$a[1]->id}"] ?? 0;
+                    $loadB = $this->daySlotLoad["{$b[0]->id}.{$b[1]->id}"] ?? 0;
+                    if ($loadA !== $loadB) return $loadA <=> $loadB;
+                    return $slotsDuration[$a[1]->id] <=> $slotsDuration[$b[1]->id];
+                });
+
+                // Suivi des jours où ce module a déjà une séance placée DANS LA
+                // GÉNÉRATION COURANTE (sessions de sessions déjà posées en base +
+                // celles de la boucle courante) pour éviter de concentrer les séances
+                // d'un même module le même jour (pas de 2 séances consécutives).
+                $modulePlacedDays = DB::table('timetable_sessions')
+                    ->where('module_id', $module->id)->where('student_group_id', $group->id)
+                    ->where('semester_id', $semesterId)->pluck('day_id')->flip()->all();
+
+                foreach ($searchOrder as [$day, $slot]) {
                     $slotStart = $this->minutes($slot->starts_at);
                     $slotEnd = $this->minutes($slot->ends_at);
                     $slotMinutes = $slotEnd - $slotStart;
-                    if ($slotMinutes <= 0 || $remainingMinutes < $slotMinutes) continue 2;
+                    if ($slotMinutes <= 0 || $remainingMinutes < $slotMinutes) continue;
+                    // Préférence de répartition : si le module a déjà une séance un
+                    // autre jour et qu'il reste des jours libres, on n'essaie pas les
+                    // jours déjà occupés par ce module (séances réparties sur la
+                    // semaine au lieu de journées de 3h consécutives).
+                    $freeDaysCount = count($days) - count($modulePlacedDays);
+                    if (isset($modulePlacedDays[$day->id]) && $freeDaysCount > 0 && $remainingMinutes < $budgetMinutes) continue;
                     // Contrôle de conflit temporel (chevauchement horaire réel, pas seulement
                     // timeslot_id identique) : deux créneaux aux horaires qui se chevauchent
                     // ne peuvent pas partager la même salle, le même prof ou le même groupe.
@@ -136,6 +175,8 @@ class AutoGenerateTimetable
                         'created_at' => now(), 'updated_at' => now(),
                     ]);
                     $this->roomSessionCount[$room->id] = ($this->roomSessionCount[$room->id] ?? 0) + 1;
+                    $this->daySlotLoad["{$day->id}.{$slot->id}"] = ($this->daySlotLoad["{$day->id}.{$slot->id}"] ?? 0) + 1;
+                    $modulePlacedDays[$day->id] = true;
                     $generated[$module->id]++; $totalGenerated++;
                     $remainingMinutes -= $slotMinutes;
                 }
