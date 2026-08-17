@@ -39,6 +39,17 @@ class AutoGenerateTimetable
             ->groupBy('classroom_id')->selectRaw('classroom_id, COUNT(*) as total')
             ->pluck('total', 'classroom_id')->map(fn ($v) => (int) $v)->all();
 
+        // Salle attribuée par (module + groupe) : toutes les séances du même
+        // module (même groupe) se déroulent dans LA MÊME salle, afin que les
+        // étudiants et le professeur retrouvent leur salle à chaque créneau.
+        // Si le module a déjà des sessions (re-génération), on réutilise la
+        // salle existante.
+        $moduleGroupRoom = DB::table('timetable_sessions')
+            ->where('semester_id', $semesterId)
+            ->groupBy('module_id', 'student_group_id')
+            ->selectRaw('module_id, student_group_id, MAX(classroom_id) as classroom_id')
+            ->get()->mapWithKeys(fn ($row) => ["{$row->module_id}.{$row->student_group_id}" => (int) $row->classroom_id])->all();
+
         foreach ($modules as $module) {
             $generated[$module->id] = 0;
             $skipped[$module->id] = [];
@@ -90,17 +101,29 @@ class AutoGenerateTimetable
                     // Contrôle de conflit temporel (chevauchement horaire réel, pas seulement
                     // timeslot_id identique) : deux créneaux aux horaires qui se chevauchent
                     // ne peuvent pas partager la même salle, le même prof ou le même groupe.
-                    // Répartition des salles : parmi les salles libres sur ce créneau, on
-                    // choisit celle qui a le moins de sessions placées dans la génération
-                    // courante (équilibrage), et à égalité la plus petite capacité suffisante
-                    // pour le groupe (juste taille). Le générateur ne reste donc jamais
-                    // collé sur une seule salle.
-                    $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId, true));
-                    if ($freeRooms->isEmpty()) continue;
-                    $room = $freeRooms->sortBy(
-                        fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
-                    )->first();
-                    if (!$room) continue;
+                    // Salle stable par module : le module (pour ce groupe) garde LA MÊME
+                    // salle pour toutes ses séances de la semaine. On essaie d'abord sa
+                    // salle attribuée ; si elle est occupée à ce créneau, on en choisit une
+                    // nouvelle parmi les salles libres (la moins utilisée, juste taille)
+                    // et elle devient la salle du module pour la suite de la génération.
+                    $candidate = null;
+                    $assignedKey = "{$module->id}.{$group->id}";
+                    if (isset($moduleGroupRoom[$assignedKey])) {
+                        $assigned = $rooms->first(fn ($r) => $r->id === $moduleGroupRoom[$assignedKey]);
+                        if ($assigned && $assigned->capacity >= $group->capacity
+                            && !$this->overlaps('classroom_id', $assigned->id, $day->id, $slotStart, $slotEnd, $semesterId, true)) {
+                            $candidate = $assigned;
+                        }
+                    }
+                    if (!$candidate) {
+                        $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId, true));
+                        if ($freeRooms->isEmpty()) continue;
+                        $candidate = $freeRooms->sortBy(
+                            fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
+                        )->first();
+                        $moduleGroupRoom[$assignedKey] = (int) $candidate->id;
+                    }
+                    $room = $candidate;
                     $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         && $this->professorIsAvailable($p->id, $day->position, $slot));
                     if (!$professor || $this->overlaps('student_group_id', $group->id, $day->id, $slotStart, $slotEnd, $semesterId)
