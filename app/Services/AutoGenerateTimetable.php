@@ -95,7 +95,7 @@ class AutoGenerateTimetable
                     // courante (équilibrage), et à égalité la plus petite capacité suffisante
                     // pour le groupe (juste taille). Le générateur ne reste donc jamais
                     // collé sur une seule salle.
-                    $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId));
+                    $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId, true));
                     if ($freeRooms->isEmpty()) continue;
                     $room = $freeRooms->sortBy(
                         fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
@@ -134,16 +134,23 @@ class AutoGenerateTimetable
      * La comparaison est temporelle (starts_at < fin AND ends_at > début), donc des
      * créneaux aux horaires qui se chevauchent mais avec des timeslot_id différents
      * déclenchent aussi le conflit : aucune salle n'est jamais double-bookée.
+     *
+     * Pour les SALLES, le contrôle est GLOBAL ($globalScope = true) : une salle
+     * réservée par une autre filière (semestre/programme différent) au même moment
+     * est considérée comme occupée. On ne double-réserve jamais une salle entre deux
+     * filières. Les profs et les groupes restent contrôlés par semestre.
      */
-    private function overlaps(string $column, int $id, int $dayId, int $startMinute, int $endMinute, int $semesterId): bool
+    private function overlaps(string $column, int $id, int $dayId, int $startMinute, int $endMinute, int $semesterId, bool $globalScope = false): bool
     {
         $start = $this->formatTime($startMinute);
         $end = $this->formatTime($endMinute);
-        return DB::table('timetable_sessions as s')
+        $query = DB::table('timetable_sessions as s')
             ->join('timeslots as t', 't.id', '=', 's.timeslot_id')
-            ->where($column, $id)->where('s.day_id', $dayId)->where('s.semester_id', $semesterId)
-            ->where('t.starts_at', '<', $end)->where('t.ends_at', '>', $start)
-            ->exists();
+            ->where($column, $id)->where('s.day_id', $dayId);
+        if (!$globalScope) {
+            $query->where('s.semester_id', $semesterId);
+        }
+        return $query->where('t.starts_at', '<', $end)->where('t.ends_at', '>', $start)->exists();
     }
 
     private function formatTime(int $minute): string

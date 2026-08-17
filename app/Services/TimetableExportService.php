@@ -53,11 +53,19 @@ class TimetableExportService
             )
             ->get();
 
+        // Grille complète : tous les jours et tous les créneaux configurés doivent
+        // apparaître dans l'emploi du temps (cases vides visibles), pas seulement
+        // ceux qui contiennent des sessions.
+        $allDays = DB::table('days')->orderBy('position')->get();
+        $allSlots = DB::table('timeslots')->orderBy('position')->get();
+
         return [
             'semester' => $semester,
             'program' => $semester->program ? $semester->program->name : '—',
             'academicYear' => (string) (DB::table('academic_years')->where('id', $semester->academic_year_id)->value('name') ?? '—'),
             'slug' => $this->slug($semester->name ?? $semester->id, $semester->program_id),
+            'allDays' => $allDays,
+            'allSlots' => $allSlots,
             'entries' => $entries,
             'counts' => [
                 'byGroup' => $entries->groupBy('groupe')->map(fn ($rows) => count($rows)),

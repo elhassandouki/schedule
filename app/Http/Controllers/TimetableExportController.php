@@ -35,6 +35,8 @@ class TimetableExportController extends Controller
             'semester' => $data['semester'],
             'program' => $data['program'],
             'academicYear' => $data['academicYear'],
+            'allDays' => $data['allDays'],
+            'allSlots' => $data['allSlots'],
             'entries' => $entries,
             'generatedAt' => now()->format('d/m/Y H:i'),
             'counts' => $data['counts'],

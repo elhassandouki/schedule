@@ -99,9 +99,12 @@
     </table>
 
     @php
-        $gSlotList = $groupEntries->unique('timeslot_id')->sortBy(function ($e) { return strtotime($e->starts_at); })->values();
-        $gDays = $groupEntries->groupBy('day_id')->sortKeys();
-        $slotsByHour = $gSlotList->keyBy('timeslot_id');
+        // Grille complète : tous les créneaux ET tous les jours configurés sont
+        // affichés — les cases vides (gris clair) montrent clairement les plages
+        // libres, au lieu de masquer les créneaux/jours sans sessions.
+        $gSlotList = $allSlots;
+        $gDaysById = $allDays->keyBy('id');
+        $gEntriesByDay = $groupEntries->groupBy('day_id')->sortKeys();
     @endphp
 
     <table class="grid">
@@ -115,12 +118,15 @@
                 <th class="slot">{{ fmtHm($s->starts_at) }} - {{ fmtHm($s->ends_at) }}</th>
             @endforeach
         </tr>
-        @foreach($gDays as $dayId => $dayEntries)
-            @php $dayFr = $exportService->translateDay($dayEntries->first()->day_name); @endphp
+        @foreach($gDaysById as $dayId => $day)
+            @php
+                $dayFr = $exportService->translateDay($day->name);
+                $dayEntries = $gEntriesByDay->get($dayId, collect());
+            @endphp
             <tr>
                 <th class="day">{{ $dayFr }}</th>
                 @foreach($gSlotList as $s)
-                    @php $cell = $dayEntries->first(fn($e) => $e->timeslot_id == $s->timeslot_id); @endphp
+                    @php $cell = $dayEntries->first(fn($e) => $e->timeslot_id == $s->id); @endphp
                     @if($cell)
                         <td class="session">
                             <div class="mod">{{ $cell->module }}</div>
