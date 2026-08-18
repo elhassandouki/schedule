@@ -131,12 +131,11 @@ class AutoGenerateTimetable
                     $slotEnd = $this->minutes($slot->ends_at);
                     $slotMinutes = $slotEnd - $slotStart;
                     if ($slotMinutes <= 0 || $remainingMinutes < $slotMinutes) continue;
-                    // Préférence de répartition : si le module a déjà une séance un
-                    // autre jour et qu'il reste des jours libres, on n'essaie pas les
-                    // jours déjà occupés par ce module (séances réparties sur la
-                    // semaine au lieu de journées de 3h consécutives).
-                    $freeDaysCount = count($days) - count($modulePlacedDays);
-                    if (isset($modulePlacedDays[$day->id]) && $freeDaysCount > 0 && $remainingMinutes < $budgetMinutes) continue;
+                    // Équilibrage naturel : l'ordre d'exploration (searchOrder) trie
+                    // déjà les créneaux par charge croissante. On ne force pas de
+                    // répartition sur plusieurs jours (qui peut bloquer si le prof
+                    // n'est dispo que certains jours) : on laisse l'algorithme placer
+                    // là où c'est possible, de façon équilibrée.
                     // Contrôle de conflit temporel (chevauchement horaire réel, pas seulement
                     // timeslot_id identique) : deux créneaux aux horaires qui se chevauchent
                     // ne peuvent pas partager la même salle, le même prof ou le même groupe.
@@ -160,7 +159,10 @@ class AutoGenerateTimetable
                         $candidate = $freeRooms->sortBy(
                             fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
                         )->first();
-                        $moduleGroupRoom[$assignedKey] = (int) $candidate->id;
+                        // NE PAS mettre à jour moduleGroupRoom ici : on ne valide
+                        // pas encore le prof/groupe. Si le placement échoue (prof
+                        // indisponible, groupe bloqué), la salle stable ne doit
+                        // pas changer. La mise à jour se fait après l'insert.
                     }
                     $room = $candidate;
                     $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
@@ -176,6 +178,7 @@ class AutoGenerateTimetable
                     ]);
                     $this->roomSessionCount[$room->id] = ($this->roomSessionCount[$room->id] ?? 0) + 1;
                     $this->daySlotLoad["{$day->id}.{$slot->id}"] = ($this->daySlotLoad["{$day->id}.{$slot->id}"] ?? 0) + 1;
+                    $moduleGroupRoom[$assignedKey] = (int) $room->id;
                     $modulePlacedDays[$day->id] = true;
                     $generated[$module->id]++; $totalGenerated++;
                     $remainingMinutes -= $slotMinutes;
