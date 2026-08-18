@@ -52,6 +52,20 @@ class AutoGenerateTimetable
             ->groupBy('classroom_id')->selectRaw('classroom_id, COUNT(*) as total')
             ->pluck('total', 'classroom_id')->map(fn ($v) => (int) $v)->all();
 
+        // Budget horaire PAR PROFESSEUR (max_weekly_hours) : les minutes déjà
+        // consommées par les sessions existantes du semestre sont chargées une
+        // seule fois, puis mises à jour à chaque placement. Un prof ne reçoit
+        // jamais de créneau qui ferait dépasser son maximum hebdomadaire
+        // (max_weekly_hours ; s'il n'est pas défini, pas de plafond).
+        $professorMinutes = DB::table('timetable_sessions as ts')
+            ->join('timeslots as t', 't.id', '=', 'ts.timeslot_id')
+            ->where('ts.semester_id', $semesterId)
+            ->groupBy('ts.professor_id')
+            ->selectRaw(DB::getDriverName() === 'sqlite'
+                ? 'ts.professor_id, ROUND(SUM((julianday(t.ends_at) - julianday(t.starts_at)) * 1440)) as minutes'
+                : 'ts.professor_id, SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at))) / 60 as minutes')
+            ->pluck('minutes', 'professor_id')->map(fn ($v) => (int) $v)->all();
+
         // Salle attribuée par (module + groupe) : toutes les séances du même
         // module (même groupe) se déroulent dans LA MÊME salle, afin que les
         // étudiants et le professeur retrouvent leur salle à chaque créneau.
@@ -172,7 +186,8 @@ class AutoGenerateTimetable
                     }
                     $room = $candidate;
                     $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
-                        && $this->professorIsAvailable($p->id, $day->position, $slot));
+                        && $this->professorIsAvailable($p->id, $day->position, $slot)
+                        && $this->professorBudgetOk($p->id, $slotMinutes, $professorMinutes));
                     if (!$professor || $this->overlaps('student_group_id', $group->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         || !$this->groupCanStudy($group->id, $day->position, $day->id, $slot, $semesterId)) continue;
 
@@ -184,6 +199,7 @@ class AutoGenerateTimetable
                     ]);
                     $this->roomSessionCount[$room->id] = ($this->roomSessionCount[$room->id] ?? 0) + 1;
                     $this->daySlotLoad["{$day->id}.{$slot->id}"] = ($this->daySlotLoad["{$day->id}.{$slot->id}"] ?? 0) + 1;
+                    $professorMinutes[$professor->id] = ($professorMinutes[$professor->id] ?? 0) + $slotMinutes;
                     $moduleGroupRoom[$assignedKey] = (int) $room->id;
                     $modulePlacedDays[$day->id] = true;
                     $generated[$module->id]++; $totalGenerated++;
@@ -229,6 +245,22 @@ class AutoGenerateTimetable
     private function formatTime(int $minute): string
     {
         return sprintf('%02d:%02d', intdiv($minute, 60), $minute % 60);
+    }
+
+    /**
+     * Vérifie que le créneau ($slotMinutes) ne ferait pas dépasser au
+     * professeur son budget hebdomadaire max_weekly_hours.
+     *
+     * @param array<int,int> $professorMinutes  suivi des minutes déjà posées
+     */
+    private function professorBudgetOk(int $professorId, int $slotMinutes, array &$professorMinutes): bool
+    {
+        $maxHours = DB::table('users')->where('id', $professorId)->value('max_weekly_hours');
+        if ($maxHours === null || $maxHours <= 0) {
+            return true; // pas de plafond défini pour ce professeur
+        }
+        $maxMinutes = (int) round((float) $maxHours * 60);
+        return (int) ($professorMinutes[$professorId] ?? 0) + $slotMinutes <= $maxMinutes;
     }
 
     private function professorIsAvailable(int $professorId, int $dayOfWeek, object $slot): bool
