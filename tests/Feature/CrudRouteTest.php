@@ -21,6 +21,9 @@ class CrudRouteTest extends TestCase
     {
         $this->actingAs($this->admin());
         $response = $this->get(route('dashboard'));
+        if (!$response->isOk() && $response->exception) {
+            fwrite(STDERR, "DASH ERR: " . $response->exception->getMessage() . " at " . $response->exception->getFile() . ":" . $response->exception->getLine() . "\n");
+        }
         $response->assertOk();
         $response->assertSee('Configuration guidée');
         // After seed, all reference data exists so wizard should be ready

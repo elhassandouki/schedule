@@ -42,6 +42,108 @@
     @endforelse
     </div>
 
+    <!-- État des emplois du temps (statistiques décisionnelles) -->
+    @if (isset($timetable_status) && $timetable_status['totals']['semesters'] > 0)
+    @php
+        $totals = $timetable_status['totals'];
+    @endphp
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary">
+                    <h3 class="card-title mb-0 text-white">
+                        <i class="fas fa-chart-pie mr-2"></i>État des emplois du temps
+                        <span class="badge badge-light ml-2">{{ $totals['semesters'] }} semestre(s)</span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Totaux rapides -->
+                    <div class="row text-center mb-4">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-success bg-opacity-10 rounded" style="background:rgba(28,187,140,.08)">
+                                <h4 class="mb-0 text-success">{{ $totals['complete'] }}</h4>
+                                <small class="text-muted">Emplois complets</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 rounded" style="background:rgba(255,193,7,.08)">
+                                <h4 class="mb-0 text-warning">{{ $totals['partial'] }}</h4>
+                                <small class="text-muted">À compléter</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 rounded" style="background:rgba(220,53,69,.08)">
+                                <h4 class="mb-0 text-danger">{{ $totals['empty'] }}</h4>
+                                <small class="text-muted">Pas encore générés</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 rounded" style="background:rgba(108,117,125,.08)">
+                                <h4 class="mb-0 text-secondary">{{ $totals['missing_prof_modules'] }}</h4>
+                                <small class="text-muted">Modules sans professeur</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if ($totals['missing_prof_modules'] > 0)
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <strong>{{ $totals['missing_prof_modules'] }} module(s) n'ont pas de professeur assigné.</strong>
+                            Ils seront ignorés lors de la génération. Assigne un professeur dans la gestion des modules.
+                        </div>
+                    @endif
+
+                    <!-- Détail par semestre -->
+                    @foreach ($timetable_status['items'] as $item)
+                        @php
+                            $badgeClass = $item['state'] === 'complete' ? 'badge-success' : ($item['state'] === 'partial' ? 'badge-warning' : 'badge-secondary');
+                            $stateLabel = $item['state'] === 'complete' ? 'Complet' : ($item['state'] === 'partial' ? 'Partiel' : 'À générer');
+                            $barClass = $item['state'] === 'complete' ? 'bg-success' : ($item['state'] === 'partial' ? 'bg-warning' : 'bg-secondary');
+                            $hoursPlaced = intdiv($item['placed_minutes'], 60);
+                            $minutesPlaced = $item['placed_minutes'] % 60;
+                            $hoursExpected = intdiv($item['expected_minutes'], 60);
+                            $minutesExpected = $item['expected_minutes'] % 60;
+                        @endphp
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-graduation-cap text-primary"></i>
+                                    {{ $item['semester']->program_name }} — {{ $item['semester']->semester_name }}
+                                    <span class="badge {{ $badgeClass }} ml-2">{{ $stateLabel }}</span>
+                                </h6>
+                                <div class="small text-muted">
+                                    {{ $item['coverage'] }}% du quota horaire ·
+                                    {{ $hoursPlaced }}h{{ $minutesPlaced ? '0'.(string)$minutesPlaced : '' }} placées
+                                    sur {{ $hoursExpected }}h{{ $minutesExpected ? '0'.(string)$minutesExpected : '' }} ·
+                                    {{ $item['module_count'] }} modules ·
+                                    {{ $item['used_rooms'] }}/{{ $item['total_rooms'] }} salles
+                                    @if ($item['last_generation'])
+                                        · dernière génération : {{ $item['last_generation']->created_at->format('d/m/Y H:i') }}
+                                        @if ($item['last_generation']->status === 'partial')
+                                            <span class="badge badge-warning">partielle ({{ $item['last_generation']->skipped_sessions_count }} ignorées)</span>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 10px">
+                                <div class="progress-bar {{ $barClass }}" style="width: {{ $item['coverage'] }}%"></div>
+                            </div>
+                            @if ($item['missing_prof_count'] > 0)
+                                <div class="small text-warning">
+                                    <i class="fas fa-user-slash"></i> Sans professeur :
+                                    @foreach ($item['missing_prof_modules'] as $mq)
+                                        <strong>{{ $mq->module_name }}</strong>{{ !$loop->last ? ',' : '' }}
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Generate & Recent -->
     <div class="row mt-4">
         <!-- Generate Timetable Section -->

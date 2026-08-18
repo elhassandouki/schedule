@@ -22,6 +22,7 @@ class DashboardController extends Controller
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
             'semesters' => DB::table('semesters')->join('programs', 'programs.id', '=', 'semesters.program_id')->select('semesters.*', 'programs.name as program')->get(),
             'programs' => DB::table('programs')->orderBy('name')->get(),
+            'timetable_status' => $this->timetableStatusData(),
             'reference' => [
                 'years' => DB::table('academic_years')->count(),
                 'departments' => DB::table('departments')->count(),
@@ -106,6 +107,108 @@ class DashboardController extends Controller
             'modulesByProgram' => ['labels' => $modulesByProgram->keys()->all(), 'values' => $modulesByProgram->values()->all()],
             'generationTrend' => ['labels' => array_map(fn ($d) => substr($d, 5), array_keys($trend)), 'values' => array_values($trend)],
         ];
+    }
+
+    /**
+     * État des emplois du temps par semestre : pour chaque semestre on agrège
+     * le quota horaire attendu (weekly_hours des modules), le nombre de
+     * séances réellement placées, le taux de couverture, les modules sans
+     * professeur, la dernière génération et les salles occupées. L'admin peut
+     * ainsi voir d'un coup d'œil ce qui est prêt, ce qui est partiel et ce
+     * qu'il reste à faire.
+     */
+    private function timetableStatusData(): array
+    {
+        $semesters = DB::table('semesters as s')
+            ->join('programs as p', 'p.id', '=', 's.program_id')
+            ->select('s.id', 's.number', 's.name as semester_name', 's.program_id', 'p.name as program_name')
+            ->orderBy('p.name')
+            ->orderBy('s.number')
+            ->get();
+
+        $semIds = $semesters->pluck('id')->all();
+
+        // Précharger les quotas et placements en une requête par semestre max,
+        // puis les sessions placées pour tous les semestres d'un coup.
+        $moduleQuotas = DB::table('modules')
+            ->whereIn('semester_id', $semIds)
+            ->select('id as module_id', 'name as module_name', 'semester_id', 'weekly_hours')
+            ->get();
+
+        $placed = DB::table('timetable_sessions')
+            ->whereIn('semester_id', $semIds)
+            ->selectRaw('semester_id, module_id, COUNT(*) as sessions')
+            ->groupBy('semester_id', 'module_id')
+            ->get()
+            ->groupBy('semester_id');
+
+        // Précharger les affectations prof-module une seule fois.
+        $profAssigned = DB::table('professor_module')->pluck('module_id');
+
+        $status = [];
+        $semModuleQuotas = $moduleQuotas->groupBy('semester_id');
+        foreach ($semesters as $sem) {
+            $moduleQuotas = ($semModuleQuotas[$sem->id] ?? collect())->values();
+
+            $placedForSem = ($placed[$sem->id] ?? collect())
+                ->pluck('sessions', 'module_id');
+
+            $expectedMinutes = $moduleQuotas->sum('weekly_hours') * 60;
+            // Durée totale des créneaux en minutes : compatible MySQL et SQLite.
+            $driver = DB::connection()->getDriverName();
+            $diffExpr = $driver === 'sqlite'
+                ? "SUM((strftime('%s', ends_at) - strftime('%s', starts_at)) / 60)"
+                : 'SUM(TIMESTAMPDIFF(MINUTE, starts_at, ends_at))';
+            $totalSlots = DB::table('timeslots')->selectRaw("$diffExpr as total")->value('total');
+            $totalSlots = max((int) $totalSlots, 1);
+
+            $placedMinutes = 0;
+            foreach ($moduleQuotas as $mq) {
+                if ($placedForSem->has($mq->module_id)) {
+                    $placedMinutes += min($mq->weekly_hours * 60, (int) ($placedForSem[$mq->module_id] * $totalSlots));
+                }
+            }
+
+            $coverage = $expectedMinutes > 0 ? min(100, (int) round(($placedMinutes / $expectedMinutes) * 100)) : 0;
+
+            $missingProf = $moduleQuotas->filter(fn ($mq) =>
+                !$profAssigned->contains($mq->module_id)
+            )->values();
+
+            $lastGeneration = ScheduleHistory::where('semester_id', $sem->id)->latest()->first();
+
+            $totalRooms = DB::table('classrooms')->count();
+            $usedRooms = DB::table('timetable_sessions as ts')
+                ->where('ts.semester_id', $sem->id)
+                ->distinct()
+                ->count('ts.classroom_id');
+
+            $state = $coverage >= 100 ? 'complete' : ($placedMinutes > 0 ? 'partial' : 'empty');
+
+            $status[] = [
+                'semester' => $sem,
+                'module_count' => $moduleQuotas->count(),
+                'expected_minutes' => $expectedMinutes,
+                'placed_minutes' => $placedMinutes,
+                'coverage' => $coverage,
+                'state' => $state,
+                'missing_prof_count' => $missingProf->count(),
+                'missing_prof_modules' => $missingProf,
+                'last_generation' => $lastGeneration,
+                'total_rooms' => $totalRooms,
+                'used_rooms' => $usedRooms,
+            ];
+        }
+
+        $totals = [
+            'semesters' => count($status),
+            'complete' => count(array_filter($status, fn ($s) => $s['state'] === 'complete')),
+            'partial' => count(array_filter($status, fn ($s) => $s['state'] === 'partial')),
+            'empty' => count(array_filter($status, fn ($s) => $s['state'] === 'empty')),
+            'missing_prof_modules' => array_sum(array_map(fn ($s) => $s['missing_prof_count'], $status)),
+        ];
+
+        return ['items' => $status, 'totals' => $totals];
     }
 
     /**
