@@ -237,10 +237,12 @@ class DashboardController extends Controller
 
     public function destroy(ScheduleHistory $generation)
     {
-        $deletedSessions = TimetableSession::where('semester_id', $generation->semester_id)
-            ->where('created_at', '>=', $generation->created_at)
-            ->where('created_at', '<=', $generation->updated_at)
-            ->delete();
+        // Supprimer TOUTES les sessions du semestre lié à cette génération.
+        // Le filtrage par horodatage était buggé : les sessions créées à un
+        // timestamp différent de celui de l'histoire (régénérations
+        // successives, sessions résiduelles) n'étaient jamais supprimées,
+        // ce qui faisait apparaître l'ancien emploi du temps dans le PDF.
+        $deletedSessions = TimetableSession::where('semester_id', $generation->semester_id)->delete();
 
         $generation->delete();
 

@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->foreignId('semester_id')->constrained()->cascadeOnDelete();
             $table->foreignId('generated_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
-            $table->enum('status', ['draft', 'generated', 'failed'])->default('draft');
+            $table->string('status', 20)->default('draft');
             $table->unsignedInteger('generated_sessions_count')->default(0);
             $table->unsignedInteger('skipped_sessions_count')->default(0);
             $table->timestamps();

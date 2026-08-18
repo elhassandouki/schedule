@@ -7,6 +7,12 @@ use Illuminate\Support\Facades\DB;
 /** Generates an employment timetable from the selected semester's modules. */
 class AutoGenerateTimetable
 {
+    /** @var array<string,int> Charge de sessions par jour/créneau (day_id.timeslot_id => total). */
+    private array $daySlotLoad = [];
+
+    /** @var array<int,int> Nombre de sessions par salle (classroom_id => total). */
+    private array $roomSessionCount = [];
+
     public function generate(int $semesterId): array
     {
         $semester = DB::table('semesters')->find($semesterId);

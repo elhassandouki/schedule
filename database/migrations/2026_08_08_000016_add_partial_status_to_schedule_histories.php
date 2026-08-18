@@ -8,21 +8,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        // MySQL: Modify enum to add 'partial'
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE schedule_histories MODIFY status ENUM('draft', 'generated', 'failed', 'partial') DEFAULT 'draft'");
-        } else {
-            // For other databases, use a different approach if needed
-            Schema::table('schedule_histories', function (Blueprint $table) {
-                // This won't work for all DBs, but MySQL enum is what we're using
-            });
+        // Convertir la colonne enum MySQL en varchar : les enum sont fragiles
+        // (valeur 'partial' refusée avec 'Data truncated' quand le driver PDO
+        // émule les prepares, et la colonne enum empêche la création de
+        // l'histoire de génération dans les tests RefreshDatabase).
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE schedule_histories CHANGE status status VARCHAR(20) NOT NULL DEFAULT 'draft'");
         }
     }
 
     public function down(): void
     {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE schedule_histories MODIFY status ENUM('draft', 'generated', 'failed') DEFAULT 'draft'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE schedule_histories CHANGE status status VARCHAR(20) NOT NULL DEFAULT 'draft'");
         }
     }
 };
