@@ -48,96 +48,115 @@
         $totals = $timetable_status['totals'];
     @endphp
     <div class="row mt-4">
-        <div class="col-12">
+        <!-- Résumé global (compact) -->
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-primary">
-                    <h3 class="card-title mb-0 text-white">
-                        <i class="fas fa-chart-pie mr-2"></i>État des emplois du temps
-                        <span class="badge badge-light ml-2">{{ $totals['semesters'] }} semestre(s)</span>
-                    </h3>
+                <div class="card-header py-2" style="background:#f4f6f9">
+                    <h6 class="card-title mb-0 text-secondary">
+                        <i class="fas fa-chart-pie mr-2"></i>Vue d'ensemble
+                        <span class="badge badge-secondary">{{ $totals['semesters'] }}</span>
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <!-- Totaux rapides -->
-                    <div class="row text-center mb-4">
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 bg-success bg-opacity-10 rounded" style="background:rgba(28,187,140,.08)">
-                                <h4 class="mb-0 text-success">{{ $totals['complete'] }}</h4>
-                                <small class="text-muted">Emplois complets</small>
-                            </div>
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <span class="text-muted small">Emplois complets</span>
+                            <div class="small text-success"><i class="fas fa-check-circle mr-1"></i>{{ $totals['complete'] }} semestre(s)</div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:rgba(255,193,7,.08)">
-                                <h4 class="mb-0 text-warning">{{ $totals['partial'] }}</h4>
-                                <small class="text-muted">À compléter</small>
-                            </div>
+                        <span class="badge badge-pill badge-success">{{ $totals['semesters'] > 0 ? round($totals['complete'] * 100 / max(1, $totals['semesters'])) : 0 }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <span class="text-muted small">À compléter</span>
+                            <div class="small text-warning"><i class="fas fa-adjust mr-1"></i>{{ $totals['partial'] }} semestre(s)</div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:rgba(220,53,69,.08)">
-                                <h4 class="mb-0 text-danger">{{ $totals['empty'] }}</h4>
-                                <small class="text-muted">Pas encore générés</small>
-                            </div>
+                        <span class="badge badge-pill badge-warning text-white">{{ $totals['semesters'] > 0 ? round($totals['partial'] * 100 / max(1, $totals['semesters'])) : 0 }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <span class="text-muted small">Pas encore générés</span>
+                            <div class="small text-secondary"><i class="fas fa-circle mr-1"></i>{{ $totals['empty'] }} semestre(s)</div>
                         </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="p-3 rounded" style="background:rgba(108,117,125,.08)">
-                                <h4 class="mb-0 text-secondary">{{ $totals['missing_prof_modules'] }}</h4>
-                                <small class="text-muted">Modules sans professeur</small>
-                            </div>
+                        <span class="badge badge-pill badge-secondary">{{ $totals['semesters'] > 0 ? round($totals['empty'] * 100 / max(1, $totals['semesters'])) : 0 }}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <div>
+                            <span class="text-muted small">Modules sans professeur</span>
+                            <div class="small {{ $totals['missing_prof_modules'] > 0 ? 'text-danger' : 'text-muted' }}"><i class="fas fa-user-slash mr-1"></i>{{ $totals['missing_prof_modules'] }} module(s)</div>
                         </div>
                     </div>
-
                     @if ($totals['missing_prof_modules'] > 0)
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            <strong>{{ $totals['missing_prof_modules'] }} module(s) n'ont pas de professeur assigné.</strong>
-                            Ils seront ignorés lors de la génération. Assigne un professeur dans la gestion des modules.
+                        <div class="alert alert-warning py-2 mb-0 mt-2" style="font-size:.8rem">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Assigne un professeur dans la gestion des modules avant de générer.
                         </div>
                     @endif
+                </div>
+            </div>
+        </div>
 
-                    <!-- Détail par semestre -->
-                    @foreach ($timetable_status['items'] as $item)
-                        @php
-                            $badgeClass = $item['state'] === 'complete' ? 'badge-success' : ($item['state'] === 'partial' ? 'badge-warning' : 'badge-secondary');
-                            $stateLabel = $item['state'] === 'complete' ? 'Complet' : ($item['state'] === 'partial' ? 'Partiel' : 'À générer');
-                            $barClass = $item['state'] === 'complete' ? 'bg-success' : ($item['state'] === 'partial' ? 'bg-warning' : 'bg-secondary');
-                            $hoursPlaced = intdiv($item['placed_minutes'], 60);
-                            $minutesPlaced = $item['placed_minutes'] % 60;
-                            $hoursExpected = intdiv($item['expected_minutes'], 60);
-                            $minutesExpected = $item['expected_minutes'] % 60;
-                        @endphp
-                        <div class="border rounded p-3 mb-3">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                <h6 class="mb-1">
-                                    <i class="fas fa-graduation-cap text-primary"></i>
-                                    {{ $item['semester']->program_name }} — {{ $item['semester']->semester_name }}
-                                    <span class="badge {{ $badgeClass }} ml-2">{{ $stateLabel }}</span>
-                                </h6>
-                                <div class="small text-muted">
-                                    {{ $item['coverage'] }}% du quota horaire ·
-                                    {{ $hoursPlaced }}h{{ $minutesPlaced ? '0'.(string)$minutesPlaced : '' }} placées
-                                    sur {{ $hoursExpected }}h{{ $minutesExpected ? '0'.(string)$minutesExpected : '' }} ·
-                                    {{ $item['module_count'] }} modules ·
-                                    {{ $item['used_rooms'] }}/{{ $item['total_rooms'] }} salles
-                                    @if ($item['last_generation'])
-                                        · dernière génération : {{ $item['last_generation']->created_at->format('d/m/Y H:i') }}
-                                        @if ($item['last_generation']->status === 'partial')
-                                            <span class="badge badge-warning">partielle ({{ $item['last_generation']->skipped_sessions_count }} ignorées)</span>
-                                        @endif
+        <!-- Détail par semestre (tableau compact) -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header py-2" style="background:#f4f6f9">
+                    <h6 class="card-title mb-0 text-secondary">
+                        <i class="fas fa-list mr-2"></i>Détail par semestre
+                    </h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0" style="font-size:.85rem">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="white-space:nowrap">Filière / Semestre</th>
+                                    <th class="text-center">État</th>
+                                    <th>Couverture</th>
+                                    <th class="text-center">Heures</th>
+                                    <th class="text-center">Modules</th>
+                                    <th class="text-center">Salles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($timetable_status['items'] as $item)
+                                    @php
+                                        $badgeClass = $item['state'] === 'complete' ? 'badge-success' : ($item['state'] === 'partial' ? 'badge-warning' : 'badge-secondary');
+                                        $stateLabel = $item['state'] === 'complete' ? 'Complet' : ($item['state'] === 'partial' ? 'Partiel' : 'À générer');
+                                        $barClass = $item['state'] === 'complete' ? 'bg-success' : ($item['state'] === 'partial' ? 'bg-warning' : 'bg-secondary');
+                                        $placedH = intdiv($item['placed_minutes'], 60);
+                                        $expectedH = intdiv($item['expected_minutes'], 60);
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <strong>{{ $item['semester']->program_name }}</strong> — {{ $item['semester']->semester_name }}
+                                            @if ($item['missing_prof_count'] > 0)
+                                                <div class="text-danger" style="font-size:.75rem" title="@foreach ($item['missing_prof_modules'] as $mq){{ $mq->module_name }}, @endforeach">
+                                                    <i class="fas fa-user-slash"></i> {{ $item['missing_prof_count'] }} sans prof
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center"><span class="badge {{ $badgeClass }}">{{ $stateLabel }}</span></td>
+                                        <td style="min-width:140px">
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress mr-2 flex-grow-1" style="height:6px;min-width:80px">
+                                                    <div class="progress-bar {{ $barClass }}" style="width: {{ $item['coverage'] }}%"></div>
+                                                </div>
+                                                <small class="text-muted">{{ $item['coverage'] }}%</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center"><small>{{ $placedH }}/{{ $expectedH }}h</small></td>
+                                        <td class="text-center"><small>{{ $item['module_count'] }}</small></td>
+                                        <td class="text-center"><small>{{ $item['used_rooms'] }}/{{ $item['total_rooms'] }}</small></td>
+                                    </tr>
+                                    @if ($item['last_generation'] && $item['last_generation']->status === 'partial')
+                                        <tr class="table-warning" style="background:rgba(255,193,7,.06)">
+                                            <td colspan="6" class="py-1" style="font-size:.75rem">
+                                                <i class="fas fa-info-circle mr-1"></i>Dernière génération partielle le {{ $item['last_generation']->created_at->format('d/m/Y H:i') }} ({{ $item['last_generation']->skipped_sessions_count }} séance(s) ignorée(s))
+                                            </td>
+                                        </tr>
                                     @endif
-                                </div>
-                            </div>
-                            <div class="progress mb-2" style="height: 10px">
-                                <div class="progress-bar {{ $barClass }}" style="width: {{ $item['coverage'] }}%"></div>
-                            </div>
-                            @if ($item['missing_prof_count'] > 0)
-                                <div class="small text-warning">
-                                    <i class="fas fa-user-slash"></i> Sans professeur :
-                                    @foreach ($item['missing_prof_modules'] as $mq)
-                                        <strong>{{ $mq->module_name }}</strong>{{ !$loop->last ? ',' : '' }}
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-                    @endforeach
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
