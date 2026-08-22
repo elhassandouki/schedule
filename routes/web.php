@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
     });
     Route::post('/timetable/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate');
     Route::delete('/timetable/generate/{generation}', [DashboardController::class, 'destroy'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate.destroy');
+    Route::get('/etat', [TimetableExportController::class, 'etat'])->name('etat.index');
+    Route::get('/etat/pdf/global', [TimetableExportController::class, 'globalPdf'])->name('etat.pdf.global');
+    Route::get('/etat/pdf/semestre', [TimetableExportController::class, 'semesterPdf'])->name('etat.pdf.semester');
+    Route::get('/etat/pdf/filiere', [TimetableExportController::class, 'programPdf'])->name('etat.pdf.program');
     Route::get('/timetable/semestre/{number}', [DashboardController::class, 'showByNumber'])->name('timetable.semester-number');
     Route::get('/timetable/{semester}', [DashboardController::class, 'show'])->name('timetable.show');
     Route::get('/timetable/{semester}/export-pdf', [TimetableExportController::class, 'pdf'])->name('timetable.export.pdf');

@@ -310,6 +310,12 @@ return [
         // Timetable Management
         ['header' => 'EMPLOI DU TEMPS'],
         [
+            'text' => 'État des emplois',
+            'url' => 'etat',
+            'icon' => 'fas fa-fw fa-chart-line',
+            'active' => ['etat*'],
+        ],
+        [
             'text' => 'Emplois du temps',
             'url' => 'timetable/sessions',
             'icon' => 'fas fa-fw fa-calendar-alt',

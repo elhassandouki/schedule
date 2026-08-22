@@ -75,6 +75,46 @@ class TimetableExportService
     }
 
     /**
+     * Collecte plusieurs semestres pour un PDF global ou regroupé par semestre.
+     */
+    public function collectMany($semesters, $user): array
+    {
+        $semesters = collect($semesters)->values();
+        $semesterIds = $semesters->pluck('id')->all();
+        $isAdminOrChef = in_array($user->role, ['super_admin', 'sous_admin', 'chef_departement', 'chef_filiere'], true);
+
+        $query = DB::table('timetable_sessions as ts')
+            ->join('modules as m', 'm.id', '=', 'ts.module_id')
+            ->join('student_groups as sg', 'sg.id', '=', 'ts.student_group_id')
+            ->join('users as professor', 'professor.id', '=', 'ts.professor_id')
+            ->join('classrooms as c', 'c.id', '=', 'ts.classroom_id')
+            ->join('days as d', 'd.id', '=', 'ts.day_id')
+            ->join('timeslots as slot', 'slot.id', '=', 'ts.timeslot_id')
+            ->join('semesters as sem', 'sem.id', '=', 'ts.semester_id')
+            ->join('programs as p', 'p.id', '=', 'sem.program_id')
+            ->whereIn('ts.semester_id', $semesterIds);
+        if (!$isAdminOrChef) $query->where('ts.professor_id', $user->id);
+
+        $entries = $query->orderBy('d.position')->orderBy('slot.position')->orderBy('sg.name')
+            ->select('ts.id', 'ts.semester_id', 'ts.day_id', 'ts.timeslot_id', 'p.name as program_name', 'sem.name as semester_name', 'm.name as module', 'sg.name as groupe', 'professor.name as professeur', 'c.name as salle', 'd.name as day_name', 'slot.name as timeslot_name', 'slot.starts_at', 'slot.ends_at')
+            ->get();
+        $allDays = DB::table('days')->orderBy('position')->get();
+        $allSlots = DB::table('timeslots')->orderBy('position')->get();
+
+        $sections = $semesters->map(function ($semester) use ($entries) {
+            $sectionEntries = $entries->where('semester_id', $semester->id)->values();
+            return [
+                'semester' => $semester,
+                'program' => $semester->program_name ?? ($semester->program->name ?? '—'),
+                'academicYear' => (string) (DB::table('academic_years')->where('id', $semester->academic_year_id)->value('name') ?? '—'),
+                'entries' => $sectionEntries,
+            ];
+        });
+
+        return ['sections' => $sections, 'allDays' => $allDays, 'allSlots' => $allSlots, 'entries' => $entries];
+    }
+
+    /**
      * Translates day names stored in English (Monday...) to French,
      * because the `days` table is seeded in English while the UI is French.
      */
