@@ -36,7 +36,7 @@ class SameRoomRealScenarioTest extends TestCase
         // Plusieurs modules comme en prod (3h chacun), avec profs distincts.
         $mods = [];
         foreach (['Mécanique', 'Thermodynamique', 'Atomistique'] as $i => $name) {
-            $mods[$name] = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => $name, 'code' => "M$i", 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+            $mods[$name] = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => $name, 'code' => "M$i", 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
             $prof = User::create(['name' => "Prof $name", 'email' => "p$i@example.com", 'password' => bcrypt('password'), 'role' => 'prof']);
             DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mods[$name], 'created_at' => $now, 'updated_at' => $now]);
         }
@@ -53,11 +53,11 @@ class SameRoomRealScenarioTest extends TestCase
         StudentGroup::create(['semester_id' => $sem, 'name' => 'G1', 'capacity' => 30]);
 
         // 5 salles comme en prod (Bloc A salles...).
-        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Bloc A - Salle 2', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Bloc A - Salle 3', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Bloc A - Salle 2', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Bloc A - Salle 3', 'capacity' => 40, 'type' => 'cours']);
         Classroom::create(['name' => 'Amphi A', 'capacity' => 100, 'type' => 'amphitheatre']);
-        Classroom::create(['name' => 'Labo Info', 'capacity' => 30, 'type' => 'laboratory']);
+        Classroom::create(['name' => 'Labo Info', 'capacity' => 30, 'type' => 'labo']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
         $this->dumpReport($report);

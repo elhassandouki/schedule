@@ -29,8 +29,8 @@ class GlobalRoomReservationTest extends TestCase
         $semA = DB::table('semesters')->insertGetId(['program_id' => 1, 'number' => 1, 'name' => 'S1', 'weeks_count' => 1, 'academic_year_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
         $semB = DB::table('semesters')->insertGetId(['program_id' => 2, 'number' => 1, 'name' => 'S1', 'weeks_count' => 1, 'academic_year_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
 
-        $modA = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $semA, 'name' => 'Maths A', 'code' => 'MA-X', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
-        $modB = DB::table('modules')->insertGetId(['program_id' => 2, 'semester_id' => $semB, 'name' => 'Physique B', 'code' => 'PH-X', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
+        $modA = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $semA, 'name' => 'Maths A', 'code' => 'MA-X', 'type' => 'cours', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
+        $modB = DB::table('modules')->insertGetId(['program_id' => 2, 'semester_id' => $semB, 'name' => 'Physique B', 'code' => 'PH-X', 'type' => 'cours', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
 
         $profA = User::create(['name' => 'Prof A', 'email' => 'profa@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
         $profB = User::create(['name' => 'Prof B', 'email' => 'profb@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
@@ -44,8 +44,8 @@ class GlobalRoomReservationTest extends TestCase
         $grpB = StudentGroup::create(['semester_id' => $semB, 'name' => 'G1B', 'capacity' => 20]);
 
         // Une seule salle commune aux deux filières.
-        Classroom::create(['name' => 'Salle Unique', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Amphi', 'capacity' => 200, 'type' => 'amphitheatre']);
+        Classroom::create(['name' => 'Salle Unique', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Amphi', 'capacity' => 200, 'type' => 'amphi']);
 
         // Filière A d'abord : elle réserve "Salle Unique" le lundi 09:00-11:00.
         $reportA = app(AutoGenerateTimetable::class)->generate($semA);

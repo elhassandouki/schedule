@@ -25,7 +25,7 @@ class ConsecutiveSessionRoomStabilityTest extends TestCase
         $sem = DB::table('semesters')->insertGetId(['program_id' => 1, 'number' => 1, 'name' => 'S1', 'weeks_count' => 15, 'academic_year_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
 
         $prof = User::create(['name' => 'Prof PR3', 'email' => 'pr3@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
-        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Biologie', 'code' => 'M1', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Biologie', 'code' => 'M1', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mod, 'created_at' => $now, 'updated_at' => $now]);
 
         // Prof disponible UNIQUEMENT le lundi (day position 1).
@@ -40,8 +40,8 @@ class ConsecutiveSessionRoomStabilityTest extends TestCase
         Timeslot::create(['name' => '11:00-12:30', 'starts_at' => '11:00', 'ends_at' => '12:30', 'position' => 2]);
 
         StudentGroup::create(['semester_id' => $sem, 'name' => 'G1', 'capacity' => 35]);
-        Classroom::create(['name' => 'Salle 01', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Salle 02', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Salle 01', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Salle 02', 'capacity' => 40, 'type' => 'cours']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
         echo "Report: generated={$report['sessions_generated']}, skipped={$report['sessions_skipped']}\n";

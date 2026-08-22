@@ -32,11 +32,7 @@ class TimetableSession extends Model {
         return $this->belongsTo(Module::class);
     }
 
-    // Legacy relations are retained only so historic timetable rows can still
-    // be read during the transition; new sessions use module/professor.
-    public function subject(): BelongsTo {
-        return $this->belongsTo(Subject::class);
-    }
+
     
     public function semester(): BelongsTo { 
         return $this->belongsTo(Semester::class); 
@@ -46,9 +42,7 @@ class TimetableSession extends Model {
         return $this->belongsTo(User::class, 'professor_id');
     }
 
-    public function teacher(): BelongsTo {
-        return $this->belongsTo(Teacher::class);
-    }
+
     
     public function classroom(): BelongsTo { 
         return $this->belongsTo(Classroom::class); 

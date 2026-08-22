@@ -51,11 +51,11 @@ class ProfessorMaxWeeklyHoursTest extends TestCase
 
         foreach (['Module 1', 'Module 2', 'Module 3'] as $i => $m) {
             $mid = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem,
-                'name' => $m, 'code' => 'M' . ($i + 1), 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+                'name' => $m, 'code' => 'M' . ($i + 1), 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
             DB::table('professor_module')->insert(['professor_id' => $prof1->id, 'module_id' => $mid, 'created_at' => $now, 'updated_at' => $now]);
         }
         $mid = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem,
-            'name' => 'Module 4', 'code' => 'M4', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+            'name' => 'Module 4', 'code' => 'M4', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $prof2->id, 'module_id' => $mid, 'created_at' => $now, 'updated_at' => $now]);
 
         foreach ([['Monday', 1], ['Tuesday', 2], ['Wednesday', 3], ['Thursday', 4], ['Friday', 5], ['Saturday', 6]] as [$n, $p]) {
@@ -67,7 +67,7 @@ class ProfessorMaxWeeklyHoursTest extends TestCase
             Timeslot::create(['name' => $n, 'starts_at' => $s, 'ends_at' => $e, 'position' => $p]);
         }
         StudentGroup::create(['semester_id' => $sem, 'name' => 'Groupe A', 'capacity' => 30]);
-        Classroom::create(['name' => 'Amphi 1', 'capacity' => 100, 'type' => 'amphitheater']);
+        Classroom::create(['name' => 'Amphi 1', 'capacity' => 100, 'type' => 'amphi']);
 
         return compact('sem', 'prof1', 'prof2');
     }
@@ -124,7 +124,7 @@ class ProfessorMaxWeeklyHoursTest extends TestCase
             'password' => bcrypt('password'), 'role' => 'prof', 'max_weekly_hours' => null]);
 
         $mid = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem,
-            'name' => 'Module X', 'code' => 'MX', 'weekly_hours' => 4, 'created_at' => $now, 'updated_at' => $now]);
+            'name' => 'Module X', 'code' => 'MX', 'type' => 'cours', 'weekly_hours' => 4, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mid, 'created_at' => $now, 'updated_at' => $now]);
 
         foreach ([['Monday', 1], ['Tuesday', 2], ['Wednesday', 3], ['Thursday', 4], ['Friday', 5], ['Saturday', 6]] as [$n, $p]) {
@@ -133,7 +133,7 @@ class ProfessorMaxWeeklyHoursTest extends TestCase
         Timeslot::create(['name' => '09:00-11:00', 'starts_at' => '09:00', 'ends_at' => '11:00', 'position' => 1]);
         Timeslot::create(['name' => '14:00-16:00', 'starts_at' => '14:00', 'ends_at' => '16:00', 'position' => 2]);
         StudentGroup::create(['semester_id' => $sem, 'name' => 'Groupe A', 'capacity' => 30]);
-        Classroom::create(['name' => 'Amphi 1', 'capacity' => 100, 'type' => 'amphitheater']);
+        Classroom::create(['name' => 'Amphi 1', 'capacity' => 100, 'type' => 'amphi']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
         // Module 4h : 2 créneaux de 2h = 2 sessions placées, tout le quota.

@@ -25,7 +25,7 @@ class RoomDistributionTest extends TestCase
 
         // Le semestre 1 du demo (5 modules, profs, créneaux 2h) reste intact.
         // On ajoute une 3e salle libre et suffisante : il y a déjà 2 salles du demo.
-        Classroom::create(['name' => 'Salle 3', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Salle 3', 'capacity' => 40, 'type' => 'cours']);
 
         // Nettoyer les sessions pour partir d'une génération propre.
         DB::table('timetable_sessions')->delete();

@@ -41,13 +41,13 @@ class TimetableQualityAnalyzerTest extends TestCase
 
         $teacher = $this->makeProfessor('Prof A');
         $teacher2 = $this->makeProfessor('Prof B');
-        $subject = $this->makeModule(['semester_id' => $semester->id, 'program_id' => $program->id, 'name' => 'Algorithmes', 'code' => 'ALG-'.Str::random(4), 'weekly_hours' => 2]);
-        $subject2 = $this->makeModule(['semester_id' => $semester->id, 'program_id' => $program->id, 'name' => 'Bases', 'code' => 'BAS-'.Str::random(4), 'weekly_hours' => 2]);
+        $subject = $this->makeModule(['semester_id' => $semester->id, 'program_id' => $program->id, 'name' => 'Algorithmes', 'code' => 'ALG-'.Str::random(4), 'type' => 'cours', 'weekly_hours' => 2]);
+        $subject2 = $this->makeModule(['semester_id' => $semester->id, 'program_id' => $program->id, 'name' => 'Bases', 'code' => 'BAS-'.Str::random(4), 'type' => 'cours', 'weekly_hours' => 2]);
         $teacher->modules()->attach($subject->id);
         $teacher2->modules()->attach($subject2->id);
         $section = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $section2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'capacity' => 30]);
-        $classroom = Classroom::create(['name' => 'A101-'.Str::random(4), 'capacity' => 40, 'type' => 'classroom']);
+        $classroom = Classroom::create(['name' => 'A101-'.Str::random(4), 'capacity' => 40, 'type' => 'cours']);
         $dayOffset = (int) DB::table('days')->max('position') + 1;
         $day = SchoolDay::create(['name' => 'Monday-'.Str::random(4), 'position' => $dayOffset]);
         $day2 = SchoolDay::create(['name' => 'Tuesday-'.Str::random(4), 'position' => $dayOffset + 1]);
@@ -76,7 +76,7 @@ class TimetableQualityAnalyzerTest extends TestCase
         return Module::create(array_merge([
             'name' => 'Module ' . Str::random(4),
             'code' => Str::upper(Str::random(4)),
-            'weekly_hours' => 2,
+            'type' => 'cours', 'weekly_hours' => 2,
         ], $attributes));
     }
 
@@ -96,11 +96,11 @@ class TimetableQualityAnalyzerTest extends TestCase
     {
         $semester = Semester::create(['program_id' => Program::create(['department_id' => Department::create(['name' => 'Hist-'.Str::random(4), 'code' => 'HIS-'.Str::random(4)])->id, 'name' => 'Licence', 'code' => 'LIC2-'.Str::random(4)])->id, 'academic_year_id' => DB::table('academic_years')->insertGetId(['name' => '2026/2027-'.Str::random(4), 'created_at' => now(), 'updated_at' => now()]), 'name' => 'S2', 'number' => 2]);
         $profX = $this->makeProfessor('Prof X');
-        $mth = $this->makeModule(['program_id' => $semester->program_id, 'semester_id' => $semester->id, 'name' => 'Maths', 'code' => 'MTH-'.Str::random(4), 'weekly_hours' => 1]);
+        $mth = $this->makeModule(['program_id' => $semester->program_id, 'semester_id' => $semester->id, 'name' => 'Maths', 'code' => 'MTH-'.Str::random(4), 'type' => 'cours', 'weekly_hours' => 1]);
         $profX->modules()->attach($mth->id);
         DB::table('professor_availabilities')->insert(['professor_id' => $profX->id, 'day_of_week' => 3, 'start_minute' => 480, 'end_minute' => 1020, 'available' => true]);
         StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
-        Classroom::create(['name' => 'Tiny-'.Str::random(4), 'capacity' => 10, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Tiny-'.Str::random(4), 'capacity' => 10, 'type' => 'cours']);
         SchoolDay::create(['name' => 'Monday-'.Str::random(4), 'position' => 1]);
         Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 

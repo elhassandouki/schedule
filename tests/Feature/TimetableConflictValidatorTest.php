@@ -21,7 +21,7 @@ class TimetableConflictValidatorTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Maths',
             'code' => 'MTH-' . \Illuminate\Support\Str::random(4),
-            'weekly_hours' => 1,
+            'type' => 'cours', 'weekly_hours' => 1,
         ]);
         $teacher = $this->professor('Ada');
         $otherTeacher = $this->professor('Grace');
@@ -69,7 +69,7 @@ class TimetableConflictValidatorTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Maths',
             'code' => 'MTH-' . \Illuminate\Support\Str::random(4),
-            'weekly_hours' => 1,
+            'type' => 'cours', 'weekly_hours' => 1,
         ]);
         $teacher = $this->professor('Ada');
         $teacher->modules()->attach($module->id);
@@ -97,7 +97,7 @@ class TimetableConflictValidatorTest extends TestCase
         $semester = $this->semester();
         $module = Module::create([
             'program_id' => $semester->program_id, 'semester_id' => $semester->id,
-            'name' => 'Module X', 'code' => 'MX', 'weekly_hours' => 2,
+            'name' => 'Module X', 'code' => 'MX', 'type' => 'cours', 'weekly_hours' => 2,
         ]);
         $teacher = User::create(['name' => 'Teacher T2', 'email' => 'tt2@school.local', 'password' => bcrypt('password'), 'role' => 'prof']);
         $room = Classroom::create(['name' => 'Bloc A', 'capacity' => 40]);
@@ -125,7 +125,7 @@ class TimetableConflictValidatorTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Maths',
             'code' => 'MTH-' . \Illuminate\Support\Str::random(4),
-            'weekly_hours' => 1,
+            'type' => 'cours', 'weekly_hours' => 1,
         ]);
         $teacher = $this->professor('Ada');
         $teacher->modules()->attach($module->id);
@@ -155,7 +155,7 @@ class TimetableConflictValidatorTest extends TestCase
             'semester_id' => $semester1->id,
             'name' => 'Maths',
             'code' => 'MTH-' . \Illuminate\Support\Str::random(4),
-            'weekly_hours' => 1,
+            'type' => 'cours', 'weekly_hours' => 1,
         ]);
         $teacher = $this->professor('Ada');
         $teacher->modules()->attach($module->id);

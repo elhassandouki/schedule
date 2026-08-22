@@ -13,6 +13,9 @@ class AutoGenerateTimetable
     /** @var array<int,int> Nombre de sessions par salle (classroom_id => total). */
     private array $roomSessionCount = [];
 
+    /** @var array<int,array<int,int>> Minutes par prof et par jour (prof_id => [day_id => total]). */
+    private array $professorDailyMinutes = [];
+
     public function generate(int $semesterId): array
     {
         $semester = DB::table('semesters')->find($semesterId);
@@ -65,6 +68,20 @@ class AutoGenerateTimetable
                 ? 'ts.professor_id, ROUND(SUM((julianday(t.ends_at) - julianday(t.starts_at)) * 1440)) as minutes'
                 : 'ts.professor_id, SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at))) / 60 as minutes')
             ->pluck('minutes', 'professor_id')->map(fn ($v) => (int) $v)->all();
+
+        // Budget quotidien PAR PROFESSEUR (max_daily_minutes)
+        $this->professorDailyMinutes = [];
+        $dailyRows = DB::table('timetable_sessions as ts')
+            ->join('timeslots as t', 't.id', '=', 'ts.timeslot_id')
+            ->where('ts.semester_id', $semesterId)
+            ->groupBy('ts.professor_id', 'ts.day_id')
+            ->selectRaw(DB::getDriverName() === 'sqlite'
+                ? 'ts.professor_id, ts.day_id, ROUND(SUM((julianday(t.ends_at) - julianday(t.starts_at)) * 1440)) as minutes'
+                : 'ts.professor_id, ts.day_id, SUM(TIME_TO_SEC(TIMEDIFF(t.ends_at, t.starts_at))) / 60 as minutes')
+            ->get();
+        foreach ($dailyRows as $row) {
+            $this->professorDailyMinutes[$row->professor_id][$row->day_id] = (int) $row->minutes;
+        }
 
         // Salle attribuée par (module + groupe) : toutes les séances du même
         // module (même groupe) se déroulent dans LA MÊME salle, afin que les
@@ -147,6 +164,7 @@ class AutoGenerateTimetable
                     ->where('semester_id', $semesterId)->pluck('day_id')->flip()->all();
 
                 foreach ($searchOrder as [$day, $slot]) {
+                    if ($slot->is_lunch_break) continue;
                     $slotStart = $this->minutes($slot->starts_at);
                     $slotEnd = $this->minutes($slot->ends_at);
                     $slotMinutes = $slotEnd - $slotStart;
@@ -169,12 +187,15 @@ class AutoGenerateTimetable
                     if (isset($moduleGroupRoom[$assignedKey])) {
                         $assigned = $rooms->first(fn ($r) => $r->id === $moduleGroupRoom[$assignedKey]);
                         if ($assigned && $assigned->capacity >= $group->capacity
+                            && $this->roomIsCompatible($module->type ?? 'cours', $assigned->type ?? 'cours')
                             && !$this->overlaps('classroom_id', $assigned->id, $day->id, $slotStart, $slotEnd, $semesterId, true)) {
                             $candidate = $assigned;
                         }
                     }
                     if (!$candidate) {
-                        $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId, true));
+                        $freeRooms = $rooms->filter(fn ($r) => $r->capacity >= $group->capacity
+                            && $this->roomIsCompatible($module->type ?? 'cours', $r->type ?? 'cours')
+                            && !$this->overlaps('classroom_id', $r->id, $day->id, $slotStart, $slotEnd, $semesterId, true));
                         if ($freeRooms->isEmpty()) continue;
                         $candidate = $freeRooms->sortBy(
                             fn ($r) => (($this->roomSessionCount[$r->id] ?? 0) * 1000000) + $r->capacity
@@ -187,7 +208,8 @@ class AutoGenerateTimetable
                     $room = $candidate;
                     $professor = $professors->first(fn ($p) => !$this->overlaps('professor_id', $p->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         && $this->professorIsAvailable($p->id, $day->position, $slot)
-                        && $this->professorBudgetOk($p->id, $slotMinutes, $professorMinutes));
+                        && $this->professorBudgetOk($p->id, $slotMinutes, $professorMinutes)
+                        && $this->professorDailyBudgetOk($p->id, $day->id, $slotMinutes));
                     if (!$professor || $this->overlaps('student_group_id', $group->id, $day->id, $slotStart, $slotEnd, $semesterId)
                         || !$this->groupCanStudy($group->id, $day->position, $day->id, $slot, $semesterId)) continue;
 
@@ -200,6 +222,7 @@ class AutoGenerateTimetable
                     $this->roomSessionCount[$room->id] = ($this->roomSessionCount[$room->id] ?? 0) + 1;
                     $this->daySlotLoad["{$day->id}.{$slot->id}"] = ($this->daySlotLoad["{$day->id}.{$slot->id}"] ?? 0) + 1;
                     $professorMinutes[$professor->id] = ($professorMinutes[$professor->id] ?? 0) + $slotMinutes;
+                    $this->professorDailyMinutes[$professor->id][$day->id] = ($this->professorDailyMinutes[$professor->id][$day->id] ?? 0) + $slotMinutes;
                     $moduleGroupRoom[$assignedKey] = (int) $room->id;
                     $modulePlacedDays[$day->id] = true;
                     $generated[$module->id]++; $totalGenerated++;
@@ -263,6 +286,16 @@ class AutoGenerateTimetable
         return (int) ($professorMinutes[$professorId] ?? 0) + $slotMinutes <= $maxMinutes;
     }
 
+    private function professorDailyBudgetOk(int $professorId, int $dayId, int $slotMinutes): bool
+    {
+        $maxDaily = DB::table('users')->where('id', $professorId)->value('max_daily_minutes');
+        if ($maxDaily === null || $maxDaily <= 0) {
+            return true;
+        }
+        $scheduledMinutes = $this->professorDailyMinutes[$professorId][$dayId] ?? 0;
+        return ($scheduledMinutes + $slotMinutes) <= $maxDaily;
+    }
+
     private function professorIsAvailable(int $professorId, int $dayOfWeek, object $slot): bool
     {
         $availability = DB::table('professor_availabilities')->where('professor_id', $professorId)
@@ -300,5 +333,29 @@ class AutoGenerateTimetable
     {
         [$hours, $minutes] = array_map('intval', explode(':', $time));
         return $hours * 60 + $minutes;
+    }
+
+    /**
+     * Vérifie si le type de salle est compatible avec le type de module.
+     * Règles :
+     * - Cours -> amphi, cours, mixte
+     * - TD -> cours, mixte
+     * - TP -> labo, salle_info, mixte
+     */
+    private function roomIsCompatible(string $moduleType, string $roomType): bool
+    {
+        $moduleType = strtolower($moduleType);
+        $roomType = strtolower($roomType);
+
+        if ($moduleType === 'cours') {
+            return in_array($roomType, ['cours', 'amphi', 'mixte']);
+        }
+        if ($moduleType === 'td') {
+            return in_array($roomType, ['cours', 'mixte']);
+        }
+        if ($moduleType === 'tp') {
+            return in_array($roomType, ['labo', 'salle_info', 'mixte']);
+        }
+        return $roomType === 'cours' || $roomType === 'mixte';
     }
 }

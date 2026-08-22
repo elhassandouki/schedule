@@ -45,7 +45,7 @@ class IdempotentGenerationTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Mécanique',
             'code' => 'MEC',
-            'weekly_hours' => 3,
+            'type' => 'cours', 'weekly_hours' => 3,
         ]);
 
         $professor = User::create([
@@ -68,7 +68,7 @@ class IdempotentGenerationTest extends TestCase
         }
 
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'PC_S1_G1', 'capacity' => 70]);
-        Classroom::create(['name' => 'Salle 01', 'capacity' => 80, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Salle 01', 'capacity' => 80, 'type' => 'cours']);
 
         $days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
         foreach ($days as $pos => $day) {

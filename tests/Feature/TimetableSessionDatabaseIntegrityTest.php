@@ -40,11 +40,11 @@ class TimetableSessionDatabaseIntegrityTest extends TestCase
         ]);
         $teacher = User::create(['name' => 'Prof A', 'email' => 'profa@int.test', 'role' => 'prof', 'password' => bcrypt('password')]);
         $teacher2 = User::create(['name' => 'Prof B', 'email' => 'profb@int.test', 'role' => 'prof', 'password' => bcrypt('password')]);
-        $subject = Module::create(['program_id' => $program->id, 'semester_id' => $semester->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'weekly_hours' => 2]);
+        $subject = Module::create(['program_id' => $program->id, 'semester_id' => $semester->id, 'name' => 'Algorithmes', 'code' => 'ALG', 'type' => 'cours', 'weekly_hours' => 2]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'student_count' => 30, 'capacity' => 30]);
         $group2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'student_count' => 28, 'capacity' => 28]);
-        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
-        $classroom2 = Classroom::create(['name' => 'A102', 'capacity' => 40, 'type' => 'classroom']);
+        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'cours']);
+        $classroom2 = Classroom::create(['name' => 'A102', 'capacity' => 40, 'type' => 'cours']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 

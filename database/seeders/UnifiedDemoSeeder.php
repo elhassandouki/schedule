@@ -184,6 +184,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_1,
             'name' => 'Introduction Programmation',
             'code' => 'INF101',
+            'type' => 'cours',
             'weekly_hours' => 6,
             'created_at' => $now,
             'updated_at' => $now,
@@ -194,6 +195,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_1,
             'name' => 'Mathématiques Discrètes',
             'code' => 'INF102',
+            'type' => 'cours',
             'weekly_hours' => 4,
             'created_at' => $now,
             'updated_at' => $now,
@@ -204,6 +206,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem1_2,
             'name' => 'Structures de Données',
             'code' => 'INF201',
+            'type' => 'cours',
             'weekly_hours' => 5,
             'created_at' => $now,
             'updated_at' => $now,
@@ -214,6 +217,7 @@ class UnifiedDemoSeeder extends Seeder
             'semester_id' => $sem2_1,
             'name' => 'Machine Learning Avancé',
             'code' => 'MAI301',
+            'type' => 'cours',
             'weekly_hours' => 6,
             'created_at' => $now,
             'updated_at' => $now,
@@ -390,7 +394,7 @@ class UnifiedDemoSeeder extends Seeder
         $room1 = DB::table('classrooms')->insertGetId([
             'name' => 'Amphi A',
             'capacity' => 100,
-            'type' => 'amphitheatre',
+            'type' => 'amphi',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -398,7 +402,7 @@ class UnifiedDemoSeeder extends Seeder
         $room2 = DB::table('classrooms')->insertGetId([
             'name' => 'Salle 101',
             'capacity' => 40,
-            'type' => 'classroom',
+            'type' => 'cours',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -406,7 +410,7 @@ class UnifiedDemoSeeder extends Seeder
         $room3 = DB::table('classrooms')->insertGetId([
             'name' => 'Salle 102',
             'capacity' => 40,
-            'type' => 'classroom',
+            'type' => 'cours',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -414,7 +418,7 @@ class UnifiedDemoSeeder extends Seeder
         $room4 = DB::table('classrooms')->insertGetId([
             'name' => 'Labo Info',
             'capacity' => 30,
-            'type' => 'lab',
+            'type' => 'labo',
             'created_at' => $now,
             'updated_at' => $now,
         ]);

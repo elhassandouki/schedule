@@ -25,7 +25,7 @@ class SameRoomPerModuleTest extends TestCase
         $sem = DB::table('semesters')->insertGetId(['program_id' => 1, 'number' => 1, 'name' => 'S1', 'weeks_count' => 1, 'academic_year_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
 
         // Module 3h/semaine → 2 créneaux de 1h30 sur des jours différents.
-        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Algèbre', 'code' => 'ALG', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Algèbre', 'code' => 'ALG', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         $prof = User::create(['name' => 'Prof', 'email' => 'p@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mod, 'created_at' => $now, 'updated_at' => $now]);
 
@@ -37,9 +37,9 @@ class SameRoomPerModuleTest extends TestCase
         StudentGroup::create(['semester_id' => $sem, 'name' => 'G1', 'capacity' => 30]);
 
         // Plusieurs salles éligibles pour vérifier que le même module garde la sienne.
-        Classroom::create(['name' => 'Salle 1', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Salle 2', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Salle 3', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Salle 1', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Salle 2', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Salle 3', 'capacity' => 40, 'type' => 'cours']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
         $this->assertTrue($report['success'], json_encode($report['skipped_per_module']));
@@ -64,7 +64,7 @@ class SameRoomPerModuleTest extends TestCase
         DB::table('programs')->insert(['department_id' => 1, 'name' => 'Programme Test', 'code' => 'PT', 'created_at' => $now, 'updated_at' => $now]);
         $sem = DB::table('semesters')->insertGetId(['program_id' => 1, 'number' => 1, 'name' => 'S1', 'weeks_count' => 1, 'academic_year_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
 
-        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Algèbre', 'code' => 'ALG', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
+        $mod = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Algèbre', 'code' => 'ALG', 'type' => 'cours', 'weekly_hours' => 2, 'created_at' => $now, 'updated_at' => $now]);
         $prof = User::create(['name' => 'Prof', 'email' => 'p@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mod, 'created_at' => $now, 'updated_at' => $now]);
 
@@ -72,8 +72,8 @@ class SameRoomPerModuleTest extends TestCase
         Timeslot::create(['name' => '09:00-11:00', 'starts_at' => '09:00', 'ends_at' => '11:00', 'position' => 1]);
         StudentGroup::create(['semester_id' => $sem, 'name' => 'G1', 'capacity' => 30]);
 
-        Classroom::create(['name' => 'Salle A', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Salle B', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Salle A', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Salle B', 'capacity' => 40, 'type' => 'cours']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
         $this->assertTrue($report['success']);

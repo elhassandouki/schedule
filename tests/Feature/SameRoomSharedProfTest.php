@@ -32,8 +32,8 @@ class SameRoomSharedProfTest extends TestCase
 
         // UN SEUL prof enseigne deux modules (cas classique).
         $prof = User::create(['name' => 'Prof', 'email' => 'p@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
-        $mod1 = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Mécanique', 'code' => 'M1', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
-        $mod2 = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Thermodynamique', 'code' => 'M2', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $mod1 = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Mécanique', 'code' => 'M1', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $mod2 = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Thermodynamique', 'code' => 'M2', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mod1, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mod2, 'created_at' => $now, 'updated_at' => $now]);
 
@@ -44,8 +44,8 @@ class SameRoomSharedProfTest extends TestCase
 
         StudentGroup::create(['semester_id' => $sem, 'name' => 'G1', 'capacity' => 30]);
 
-        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'classroom']);
-        Classroom::create(['name' => 'Bloc A - Salle 2', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'cours']);
+        Classroom::create(['name' => 'Bloc A - Salle 2', 'capacity' => 40, 'type' => 'cours']);
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);
 

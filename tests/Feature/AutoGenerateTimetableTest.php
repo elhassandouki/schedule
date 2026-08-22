@@ -45,7 +45,7 @@ class AutoGenerateTimetableTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG',
-            'weekly_hours' => 2,
+            'type' => 'cours', 'weekly_hours' => 2,
         ]);
         $professor = User::create([
             'name' => 'Prof A',
@@ -67,7 +67,7 @@ class AutoGenerateTimetableTest extends TestCase
 
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
         $group2 = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G2', 'capacity' => 30]);
-        Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'cours']);
         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         foreach ($days as $pos => $day) {
             SchoolDay::create(['name' => $day, 'position' => $pos + 1]);
@@ -114,7 +114,7 @@ class AutoGenerateTimetableTest extends TestCase
             'semester_id' => $otherSemester->id,
             'code' => 'PHY',
             'name' => 'Physique',
-            'weekly_hours' => 2,
+            'type' => 'cours', 'weekly_hours' => 2,
         ]);
         $data['professor']->modules()->attach($otherModule->id);
         $otherGroup = StudentGroup::create(['semester_id' => $otherSemester->id, 'name' => 'G2', 'capacity' => 30]);

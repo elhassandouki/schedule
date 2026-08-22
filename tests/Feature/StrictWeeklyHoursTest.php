@@ -39,7 +39,7 @@ class StrictWeeklyHoursTest extends TestCase
 
         // Un module de 3h/semaine, assigné à un seul prof disponible en semaine.
         $module = DB::table('modules')->where('weekly_hours', 6)->first();
-        DB::table('modules')->where('id', $module->id)->update(['weekly_hours' => 3]);
+        DB::table('modules')->where('id', $module->id)->update(['type' => 'cours', 'weekly_hours' => 3]);
         // Isoler le module : supprimer les autres modules et groupes du demo
         // pour que le rapport de génération ne soit pas pollué par des skips.
         DB::table('modules')->where('id', '!=', $module->id)->delete();

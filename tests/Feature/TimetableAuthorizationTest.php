@@ -44,7 +44,7 @@ class TimetableAuthorizationTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG-' . Str::random(4),
-            'weekly_hours' => 1,
+            'type' => 'cours', 'weekly_hours' => 1,
         ]);
         $teacher = User::create([
             'name' => 'Prof A',
@@ -61,7 +61,7 @@ class TimetableAuthorizationTest extends TestCase
             'available' => true,
         ]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
-        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
+        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'cours']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 

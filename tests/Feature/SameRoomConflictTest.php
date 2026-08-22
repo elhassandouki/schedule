@@ -29,8 +29,8 @@ class SameRoomConflictTest extends TestCase
 
         $profPC = User::create(['name' => 'Prof PC', 'email' => 'pc@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
         $profMT = User::create(['name' => 'Prof MT', 'email' => 'mt@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
-        $modPC = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $semPC, 'name' => 'Mécanique', 'code' => 'M1', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
-        $modMT = DB::table('modules')->insertGetId(['program_id' => 2, 'semester_id' => $semMT, 'name' => 'Analyse', 'code' => 'A1', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $modPC = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $semPC, 'name' => 'Mécanique', 'code' => 'M1', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $modMT = DB::table('modules')->insertGetId(['program_id' => 2, 'semester_id' => $semMT, 'name' => 'Analyse', 'code' => 'A1', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $profPC->id, 'module_id' => $modPC, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('professor_module')->insert(['professor_id' => $profMT->id, 'module_id' => $modMT, 'created_at' => $now, 'updated_at' => $now]);
 
@@ -42,7 +42,7 @@ class SameRoomConflictTest extends TestCase
         StudentGroup::create(['semester_id' => $semPC, 'name' => 'PC G1', 'capacity' => 30]);
         StudentGroup::create(['semester_id' => $semMT, 'name' => 'MT G1', 'capacity' => 30]);
 
-        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'classroom']);
+        Classroom::create(['name' => 'Bloc A - Salle 1', 'capacity' => 40, 'type' => 'cours']);
 
         // Maths réserve la seule salle le lundi.
         $genMT = app(AutoGenerateTimetable::class)->generate($semMT);

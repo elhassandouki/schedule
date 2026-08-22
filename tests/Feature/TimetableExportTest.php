@@ -48,7 +48,7 @@ class TimetableExportTest extends TestCase
         $day = DB::table('days')->insertGetId(['name' => 'Monday', 'position' => 1, 'created_at' => now(), 'updated_at' => now()]);
         $slot = DB::table('timeslots')->insertGetId(['name' => '08:00-10:00', 'position' => 1, 'starts_at' => '08:00:00', 'ends_at' => '10:00:00', 'created_at' => now(), 'updated_at' => now()]);
         $prof = User::create(['name' => 'Prof Export', 'email' => 'prof-export@test.local', 'password' => bcrypt('password'), 'role' => 'prof']);
-        $module = Module::create(['name' => 'Module Export', 'code' => 'MOD-EXP', 'weekly_hours' => 2, 'program_id' => $programId, 'semester_id' => $this->semester->id]);
+        $module = Module::create(['name' => 'Module Export', 'code' => 'MOD-EXP', 'type' => 'cours', 'weekly_hours' => 2, 'program_id' => $programId, 'semester_id' => $this->semester->id]);
         $group = StudentGroup::create(['name' => 'Groupe Export', 'semester_id' => $this->semester->id, 'program_id' => $programId]);
         $room = DB::table('classrooms')->insertGetId(['name' => 'Salle Export', 'capacity' => 30, 'created_at' => now(), 'updated_at' => now()]);
 

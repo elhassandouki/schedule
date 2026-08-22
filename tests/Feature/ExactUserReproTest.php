@@ -30,7 +30,7 @@ class ExactUserReproTest extends TestCase
         $prof = User::create(['name' => 'Prof PR3', 'email' => 'pr3@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
 
         foreach (['Biologie cellulaire','Histologie et embryologie','Géologie générale','Mathématiques','Physique','Chimie','Zoologie','Botanique'] as $i => $m) {
-            $mid = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => $m, 'code' => 'M'.($i+1), 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+            $mid = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => $m, 'code' => 'M'.($i+1), 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
             DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $mid, 'created_at' => $now, 'updated_at' => $now]);
         }
 
@@ -44,7 +44,7 @@ class ExactUserReproTest extends TestCase
         StudentGroup::create(['semester_id' => $sem, 'name' => 'S1_SVT_Groupe 1', 'capacity' => 35]);
 
         for ($i = 2; $i <= 13; $i++) {
-            Classroom::create(['name' => "Bloc A - Salle " . str_pad($i, 2, '0', STR_PAD_LEFT), 'capacity' => 40, 'type' => 'classroom']);
+            Classroom::create(['name' => "Bloc A - Salle " . str_pad($i, 2, '0', STR_PAD_LEFT), 'capacity' => 40, 'type' => 'cours']);
         }
 
         $report = app(AutoGenerateTimetable::class)->generate($sem);

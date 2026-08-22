@@ -53,7 +53,7 @@ class LegacyScheduleGeneratorTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG001',
-            'weekly_hours' => 2,
+            'type' => 'cours', 'weekly_hours' => 2,
         ]);
         $professor->modules()->attach($module->id);
         DB::table('professor_availabilities')->insert([
@@ -64,7 +64,7 @@ class LegacyScheduleGeneratorTest extends TestCase
             'available' => true,
         ]);
         StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
-        Classroom::create(['name' => 'A101', 'capacity' => 50, 'type' => 'classroom']);
+        Classroom::create(['name' => 'A101', 'capacity' => 50, 'type' => 'cours']);
         SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         SchoolDay::create(['name' => 'Tuesday', 'position' => 2]);
         Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);

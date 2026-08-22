@@ -34,8 +34,8 @@ class DestroyRegenerateFlowTest extends TestCase
         $prof = User::create(['name' => 'PR3', 'email' => 'pr3@example.com', 'password' => bcrypt('password'), 'role' => 'prof']);
 
         // 2 modules : Biologie (avec sessions résiduelles) et Chimie (propre).
-        $bioId = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Biologie cellulaire', 'code' => 'M1', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
-        $chiId = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Chimie', 'code' => 'M2', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $bioId = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Biologie cellulaire', 'code' => 'M1', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
+        $chiId = DB::table('modules')->insertGetId(['program_id' => 1, 'semester_id' => $sem, 'name' => 'Chimie', 'code' => 'M2', 'type' => 'cours', 'weekly_hours' => 3, 'created_at' => $now, 'updated_at' => $now]);
         foreach ([$bioId, $chiId] as $m) {
             DB::table('professor_module')->insert(['professor_id' => $prof->id, 'module_id' => $m, 'created_at' => $now, 'updated_at' => $now]);
         }
@@ -47,8 +47,8 @@ class DestroyRegenerateFlowTest extends TestCase
         }
         \App\Models\Timeslot::create(['name' => '09:00-10:30', 'starts_at' => '09:00', 'ends_at' => '10:30', 'position' => 1]);
         \App\Models\Timeslot::create(['name' => '11:00-12:30', 'starts_at' => '11:00', 'ends_at' => '12:30', 'position' => 2]);
-        \App\Models\Classroom::create(['name' => 'Salle 01', 'capacity' => 40, 'type' => 'classroom']);
-        \App\Models\Classroom::create(['name' => 'Salle 02', 'capacity' => 40, 'type' => 'classroom']);
+        \App\Models\Classroom::create(['name' => 'Salle 01', 'capacity' => 40, 'type' => 'cours']);
+        \App\Models\Classroom::create(['name' => 'Salle 02', 'capacity' => 40, 'type' => 'cours']);
 
         return ['sem' => $sem, 'bioId' => $bioId, 'chiId' => $chiId, 'profId' => $prof->id, 'groupId' => 1];
     }

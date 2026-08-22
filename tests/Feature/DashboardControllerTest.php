@@ -48,7 +48,7 @@ class DashboardControllerTest extends TestCase
             'semester_id' => $semester->id,
             'name' => 'Algorithmes',
             'code' => 'ALG001',
-            'weekly_hours' => 2,
+            'type' => 'cours', 'weekly_hours' => 2,
         ]);
         $professor->modules()->attach($module->id);
         DB::table('professor_availabilities')->insert([
@@ -59,7 +59,7 @@ class DashboardControllerTest extends TestCase
             'available' => true,
         ]);
         $group = StudentGroup::create(['semester_id' => $semester->id, 'name' => 'G1', 'capacity' => 30]);
-        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'classroom']);
+        $classroom = Classroom::create(['name' => 'A101', 'capacity' => 40, 'type' => 'cours']);
         $day = SchoolDay::create(['name' => 'Monday', 'position' => 1]);
         $timeslot = Timeslot::create(['name' => '08:00-10:00', 'starts_at' => '08:00', 'ends_at' => '10:00', 'position' => 1]);
 
