@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     });
     Route::post('/timetable/generate', [DashboardController::class, 'generate'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate');
     Route::delete('/timetable/generate/{generation}', [DashboardController::class, 'destroy'])->middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->name('timetable.generate.destroy');
+    Route::get('/timetable/semestre/{number}', [DashboardController::class, 'showByNumber'])->name('timetable.semester-number');
     Route::get('/timetable/{semester}', [DashboardController::class, 'show'])->name('timetable.show');
     Route::get('/timetable/{semester}/export-pdf', [TimetableExportController::class, 'pdf'])->name('timetable.export.pdf');
     Route::get('/timetable/{semester}/export-excel', [TimetableExportController::class, 'excel'])->name('timetable.export.excel');

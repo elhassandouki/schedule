@@ -21,6 +21,7 @@ class DashboardController extends Controller
             ],
             'schedules' => ScheduleHistory::latest()->take(6)->get(),
             'semesters' => DB::table('semesters')->join('programs', 'programs.id', '=', 'semesters.program_id')->select('semesters.*', 'programs.name as program')->get(),
+            'semesterOptions' => DB::table('semesters')->select('number')->selectRaw('COUNT(*) as programs_count')->groupBy('number')->orderBy('number')->get(),
             'programs' => DB::table('programs')->orderBy('name')->get(),
             'timetable_status' => $this->timetableStatusData(),
             'reference' => [
@@ -258,7 +259,17 @@ class DashboardController extends Controller
 
     public function generate(Request $request, AutoGenerateTimetable $generator)
     {
-        $data = $request->validate(['semester_id' => 'required|exists:semesters,id', 'name' => 'required|string|max:100']);
+        $data = $request->validate([
+            'semester_number' => 'nullable|integer|min:1',
+            'semester_id' => 'nullable|exists:semesters,id',
+            'name' => 'required|string|max:100',
+        ]);
+        if (empty($data['semester_number']) && empty($data['semester_id'])) {
+            return redirect()->back()->withErrors(['semester_number' => 'Sélectionnez un semestre.']);
+        }
+        if (!empty($data['semester_number'])) {
+            return $this->generateForSemesterNumber((int) $data['semester_number'], $data['name'], $generator);
+        }
         
         $semesterId = (int) $data['semester_id'];
         $semester = DB::table('semesters')->find($semesterId);
@@ -322,6 +333,71 @@ class DashboardController extends Controller
             ->with('generation_report', $report)
             ->with('unplaced', $unplaced);
 
+    }
+
+    private function generateForSemesterNumber(int $number, string $name, AutoGenerateTimetable $generator)
+    {
+        $query = DB::table('semesters as s')->where('s.number', $number);
+        $activeYearIds = DB::table('academic_years')->where('is_active', true)->pluck('id');
+        if ($activeYearIds->isNotEmpty()) $query->whereIn('s.academic_year_id', $activeYearIds);
+        $semesters = $query->orderBy('s.program_id')->pluck('s.id');
+        if ($semesters->isEmpty()) {
+            return redirect()->back()->withErrors(['generation' => "Aucun semestre {$number} n'est disponible."]);
+        }
+
+        $totalGenerated = 0; $totalSkipped = 0; $allUnplaced = [];
+        foreach ($semesters as $semesterId) {
+            $missing = [];
+            if (DB::table('modules')->where('semester_id', $semesterId)->count() === 0) $missing[] = 'Modules';
+            if (DB::table('student_groups')->where('semester_id', $semesterId)->count() === 0) $missing[] = 'Groupes';
+            if (DB::table('classrooms')->count() === 0) $missing[] = 'Salles';
+            if (DB::table('days')->count() === 0) $missing[] = 'Jours';
+            if (DB::table('timeslots')->count() === 0) $missing[] = 'Créneaux';
+            if (!empty($missing)) {
+                $allUnplaced[] = ['semester_id' => $semesterId, 'errors' => ['Données manquantes : ' . implode(', ', $missing)]];
+                continue;
+            }
+            $report = $generator->generate((int) $semesterId);
+            if (isset($report['error'])) {
+                $allUnplaced[] = ['semester_id' => $semesterId, 'errors' => [$report['error']]];
+                continue;
+            }
+            $totalGenerated += (int) ($report['sessions_generated'] ?? 0);
+            $totalSkipped += (int) ($report['sessions_skipped'] ?? 0);
+            foreach (($report['skipped_per_module'] ?? []) as $moduleId => $errors) {
+                if (!empty($errors)) $allUnplaced[] = ['semester_id' => $semesterId, 'module_id' => $moduleId, 'errors' => $errors];
+            }
+            ScheduleHistory::create([
+                'semester_id' => $semesterId,
+                'name' => $name . ' — Semestre ' . $number,
+                'status' => $report['success'] ? 'generated' : 'partial',
+                'generated_sessions_count' => $report['sessions_generated'] ?? 0,
+                'skipped_sessions_count' => $report['sessions_skipped'] ?? 0,
+                'generated_by_user_id' => auth()->id(),
+            ]);
+        }
+        $message = "Semestre {$number} généré pour {$semesters->count()} filière(s) : {$totalGenerated} séance(s) placée(s)";
+        if ($totalSkipped > 0) $message .= " ({$totalSkipped} minute(s)/séance(s) non placée(s))";
+        return redirect()->route('timetable.semester-number', $number)
+            ->with('success', $message)->with('batch_unplaced', $allUnplaced);
+    }
+
+    public function showByNumber(Request $request, int $number)
+    {
+        $user = $request->user();
+        $isAdminOrChef = in_array($user->role, ['super_admin', 'sous_admin', 'chef_departement', 'chef_filiere'], true);
+        $semesters = DB::table('semesters as s')->join('programs as p', 'p.id', '=', 's.program_id')
+            ->where('s.number', $number)->select('s.*', 'p.name as program_name')->orderBy('p.name')->get()
+            ->filter(fn ($semester) => $isAdminOrChef || DB::table('timetable_sessions')->where('semester_id', $semester->id)->where('professor_id', $user->id)->exists());
+        $semesterIds = $semesters->pluck('id');
+        $entries = DB::table('timetable_sessions as ts')->join('modules as m', 'm.id', '=', 'ts.module_id')
+            ->join('student_groups as sg', 'sg.id', '=', 'ts.student_group_id')->join('users as professor', 'professor.id', '=', 'ts.professor_id')
+            ->join('classrooms as c', 'c.id', '=', 'ts.classroom_id')->join('days as d', 'd.id', '=', 'ts.day_id')->join('timeslots as slot', 'slot.id', '=', 'ts.timeslot_id')
+            ->join('semesters as sem', 'sem.id', '=', 'ts.semester_id')->join('programs as p', 'p.id', '=', 'sem.program_id')
+            ->whereIn('ts.semester_id', $semesterIds)->when(!$isAdminOrChef, fn ($q) => $q->where('ts.professor_id', $user->id))
+            ->select('ts.id', 'ts.semester_id', 'p.name as program_name', 'm.name as module', 'sg.name as groupe', 'professor.name as professeur', 'c.name as salle', 'd.name as day_name', 'slot.name as timeslot_name', 'slot.starts_at', 'slot.ends_at')
+            ->orderBy('d.position')->orderBy('slot.position')->get();
+        return view('timetable.grouped', compact('number', 'semesters', 'entries'));
     }
 
     public function show(Request $request, Semester $semester)

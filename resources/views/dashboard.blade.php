@@ -181,26 +181,15 @@
 
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="program_id" class="font-weight-600">Filière</label>
-                                <select name="program_id" id="program_id" class="form-control">
-                                    <option value="">-- Sélectionner une filière --</option>
-                                    @foreach ($programs as $program)
-                                        <option value="{{ $program->id }}">{{ $program->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="semester_id" class="font-weight-600">Semestre</label>
-                                <select name="semester_id" id="semester_id" class="form-control" required>
+                                <label for="semester_number" class="font-weight-600">Semestre à générer</label>
+                                <select name="semester_number" id="semester_number" class="form-control" required>
                                     <option value="">-- Sélectionner un semestre --</option>
-                                    @foreach ($semesters as $semester)
-                                        <option value="{{ $semester->id }}" data-program-id="{{ $semester->program_id }}">
-                                            {{ $semester->program ?? 'N/A' }} — {{ $semester->name }}
-                                        </option>
+                                    @foreach ($semesterOptions as $option)
+                                        <option value="{{ $option->number }}">Semestre {{ $option->number }} — {{ $option->programs_count }} filière(s)</option>
                                     @endforeach
                                 </select>
-                                @error('semester_id')
+                                <small class="form-text text-muted">Toutes les filières qui possèdent ce semestre seront générées ensemble.</small>
+                                @error('semester_number')
                                     <small class="text-danger d-block mt-2">{{ $message }}</small>
                                 @enderror
                             </div>
