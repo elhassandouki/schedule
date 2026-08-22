@@ -55,6 +55,30 @@
                     @if($resource === "groupes")<th>Conditions</th>@endif
                     <th class="text-right">Actions</th>
                 </tr>
+                <tr class="dt-filters bg-light">
+                    @foreach($meta['fields'] as $field=>$label)
+                        <th class="p-1">
+                            @if(isset($choices[$field]) || isset($meta['options'][$field]))
+                                <select class="form-control form-control-sm dt-column-filter" data-column="{{ $loop->index }}">
+                                    <option value="">Tous</option>
+                                    @if(isset($meta['options'][$field]))
+                                        @foreach($meta['options'][$field] as $value=>$optionLabel)
+                                            <option value="{{ $optionLabel }}">{{ $optionLabel }}</option>
+                                        @endforeach
+                                    @else
+                                        @foreach($choices[$field] as $value=>$optionLabel)
+                                            <option value="{{ $optionLabel }}">{{ $optionLabel }}</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                            @elseif($field !== 'password')
+                                <input type="search" class="form-control form-control-sm dt-column-filter" data-column="{{ $loop->index }}" placeholder="Filtrer…">
+                            @endif
+                        </th>
+                    @endforeach
+                    @if($resource === "groupes")<th class="p-1"><input type="search" class="form-control form-control-sm dt-column-filter" data-column="{{ count($meta['fields']) }}" placeholder="Filtrer…"></th>@endif
+                    <th></th>
+                </tr>
             </thead>
             <tbody>
                 @forelse($rows as $row)
@@ -120,7 +144,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof jQuery.fn.DataTable !== 'undefined') {
-        jQuery('#dataTable').DataTable({
+        const table = jQuery('#dataTable').DataTable({
             language: {
                 sProcessing: "Traitement en cours...",
                 sSearch: "Rechercher :",
@@ -136,7 +160,16 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             order: [[0, 'asc']],
             lengthMenu: [10, 25, 50, 100],
+            orderCellsTop: true,
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+        });
+
+        // Filtres individuels par colonne, inspirés de store_management.
+        document.querySelectorAll('#dataTable .dt-column-filter').forEach(function (field) {
+            field.addEventListener(field.tagName === 'SELECT' ? 'change' : 'input', function () {
+                const column = table.column(Number(this.dataset.column));
+                column.search(this.value, false, true).draw();
+            });
         });
     }
 });
