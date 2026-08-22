@@ -44,7 +44,7 @@
             Liste — {{ $meta['title'] }}
         </h3>
         <div class="card-tools">
-            <span class="badge badge-light"><i class="fas fa-table mr-1"></i>{{ number_format($rows->total()) }} élément(s)</span>
+            <span class="badge badge-light"><i class="fas fa-table mr-1"></i>{{ number_format($rows->count()) }} élément(s)</span>
         </div>
     </div>
     <div class="card-body table-responsive p-0">
@@ -114,7 +114,6 @@
             </tbody>
         </table>
     </div>
-    @if($rows->hasPages())<div class="card-footer">{{ $rows->links() }}</div>@endif
 </div>
 @endsection
 @push('js')
