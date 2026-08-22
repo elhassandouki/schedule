@@ -38,6 +38,33 @@
 @endif
 
 <div class="card card-primary card-outline">
+    @if(!empty($meta['filters']))
+    <div class="card-body border-bottom py-2">
+        <div class="form-row align-items-end">
+            @foreach($meta['filters'] as $filterField)
+                @php($filterColumn = array_search($filterField, array_keys($meta['fields']), true))
+                @if($filterColumn !== false)
+                <div class="col-md-3 col-lg-2 mb-2">
+                    <label class="small text-muted mb-1" for="filter-{{ $filterField }}">{{ $meta['fields'][$filterField] ?? ucfirst(str_replace('_', ' ', $filterField)) }}</label>
+                    @if(isset($meta['options'][$filterField]) || isset($choices[$filterField]))
+                        <select id="filter-{{ $filterField }}" class="form-control form-control-sm dt-business-filter" data-column="{{ $filterColumn }}">
+                            <option value="">Tous</option>
+                            @if(isset($meta['options'][$filterField]))
+                                @foreach($meta['options'][$filterField] as $value=>$optionLabel)<option value="{{ $optionLabel }}">{{ $optionLabel }}</option>@endforeach
+                            @elseif(isset($choices[$filterField]))
+                                @foreach($choices[$filterField] as $value=>$optionLabel)<option value="{{ $optionLabel }}">{{ $optionLabel }}</option>@endforeach
+                            @endif
+                        </select>
+                    @else
+                        <input id="filter-{{ $filterField }}" type="search" class="form-control form-control-sm dt-business-filter" data-column="{{ $filterColumn }}" placeholder="Rechercher…">
+                    @endif
+                </div>
+                @endif
+            @endforeach
+            <div class="col-md-auto mb-2"><button type="button" id="resetTableFilters" class="btn btn-sm btn-outline-secondary"><i class="fas fa-undo mr-1"></i>Réinitialiser</button></div>
+        </div>
+    </div>
+    @endif
     <div class="card-header">
         <h3 class="card-title mb-0 text-white">
             <i class="{{ $meta['icon'] ?? 'fas fa-list' }} mr-2"></i>
@@ -54,30 +81,6 @@
                     @foreach($meta['fields'] as $field=>$label)<th>{{ $label }}</th>@endforeach
                     @if($resource === "groupes")<th>Conditions</th>@endif
                     <th class="text-right">Actions</th>
-                </tr>
-                <tr class="dt-filters bg-light">
-                    @foreach($meta['fields'] as $field=>$label)
-                        <th class="p-1">
-                            @if(isset($choices[$field]) || isset($meta['options'][$field]))
-                                <select class="form-control form-control-sm dt-column-filter" data-column="{{ $loop->index }}">
-                                    <option value="">Tous</option>
-                                    @if(isset($meta['options'][$field]))
-                                        @foreach($meta['options'][$field] as $value=>$optionLabel)
-                                            <option value="{{ $optionLabel }}">{{ $optionLabel }}</option>
-                                        @endforeach
-                                    @else
-                                        @foreach($choices[$field] as $value=>$optionLabel)
-                                            <option value="{{ $optionLabel }}">{{ $optionLabel }}</option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                            @elseif($field !== 'password')
-                                <input type="search" class="form-control form-control-sm dt-column-filter" data-column="{{ $loop->index }}" placeholder="Filtrer…">
-                            @endif
-                        </th>
-                    @endforeach
-                    @if($resource === "groupes")<th class="p-1"><input type="search" class="form-control form-control-sm dt-column-filter" data-column="{{ count($meta['fields']) }}" placeholder="Filtrer…"></th>@endif
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -165,11 +168,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // Filtres individuels par colonne, inspirés de store_management.
-        document.querySelectorAll('#dataTable .dt-column-filter').forEach(function (field) {
+        document.querySelectorAll('.dt-business-filter').forEach(function (field) {
             field.addEventListener(field.tagName === 'SELECT' ? 'change' : 'input', function () {
-                const column = table.column(Number(this.dataset.column));
-                column.search(this.value, false, true).draw();
+                table.column(Number(this.dataset.column)).search(this.value, false, true).draw();
             });
+        });
+        const reset = document.getElementById('resetTableFilters');
+        if (reset) reset.addEventListener('click', function () {
+            document.querySelectorAll('.dt-business-filter').forEach(function (field) { field.value = ''; });
+            table.columns().search('').draw();
         });
     }
 });
