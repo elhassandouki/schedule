@@ -77,7 +77,7 @@ class TimetableExportService
     /**
      * Collecte plusieurs semestres pour un PDF global ou regroupé par semestre.
      */
-    public function collectMany($semesters, $user): array
+    public function collectMany($semesters, $user, ?int $professorId = null): array
     {
         $semesters = collect($semesters)->values();
         $semesterIds = $semesters->pluck('id')->all();
@@ -93,7 +93,8 @@ class TimetableExportService
             ->join('semesters as sem', 'sem.id', '=', 'ts.semester_id')
             ->join('programs as p', 'p.id', '=', 'sem.program_id')
             ->whereIn('ts.semester_id', $semesterIds);
-        if (!$isAdminOrChef) $query->where('ts.professor_id', $user->id);
+        if ($professorId !== null) $query->where('ts.professor_id', $professorId);
+        elseif (!$isAdminOrChef) $query->where('ts.professor_id', $user->id);
 
         $entries = $query->orderBy('d.position')->orderBy('slot.position')->orderBy('sg.name')
             ->select('ts.id', 'ts.semester_id', 'ts.day_id', 'ts.timeslot_id', 'p.name as program_name', 'sem.name as semester_name', 'm.name as module', 'sg.name as groupe', 'professor.name as professeur', 'c.name as salle', 'd.name as day_name', 'slot.name as timeslot_name', 'slot.starts_at', 'slot.ends_at')

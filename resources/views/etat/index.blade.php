@@ -72,10 +72,27 @@
         </div>
     </div>
     <div class="card border-0 shadow-sm mt-2">
-        <div class="card-body py-3"><i class="fas fa-info-circle text-primary mr-2"></i><span class="text-muted">Le PDF global regroupe tous les semestres visibles. Le PDF par semestre regroupe toutes ses filières. Le PDF par filière reste limité au semestre sélectionné.</span></div>
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="fas fa-chalkboard-teacher mr-2"></i>Emploi par professeur</h5><span class="badge badge-light">{{ $professorStats->count() }} professeur(s)</span></div>
+        <div class="card-body">
+            <div class="row align-items-end mb-3">
+                <div class="col-md-8"><p class="text-muted mb-0">Pour chaque professeur, retrouvez les modules qu'il enseigne dans les séances planifiées, puis téléchargez son emploi complet.</p></div>
+                <div class="col-md-4 mt-2 mt-md-0"><form action="{{ route('etat.pdf.professor') }}" method="GET" target="_blank"><div class="input-group"><select name="professor_id" class="form-control" required><option value="">-- Choisir un professeur --</option>@foreach($professors as $professor)<option value="{{ $professor->id }}">{{ $professor->name }}</option>@endforeach</select><div class="input-group-append"><button class="btn btn-danger" title="Télécharger l'emploi du professeur"><i class="fas fa-file-pdf"></i></button></div></div></form></div>
+            </div>
+            <div class="table-responsive"><table id="professorEtatTable" class="table table-bordered table-striped table-hover w-100"><thead class="bg-light"><tr><th>Professeur</th><th>Email</th><th>Modules planifiés</th><th>Action</th></tr></thead><tbody>
+                @forelse($professorStats as $professor)
+                    <tr><td class="font-weight-bold">{{ $professor->name }}</td><td>{{ $professor->email }}</td><td>@if($professor->planned_modules->isNotEmpty()){{ $professor->planned_modules->implode(', ') }}@else<span class="text-muted">Aucun module planifié</span>@endif</td><td><a href="{{ route('etat.pdf.professor', ['professor_id' => $professor->id]) }}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf mr-1"></i>PDF</a></td></tr>
+                @empty
+                    <tr><td colspan="4" class="text-center text-muted">Aucun professeur disponible.</td></tr>
+                @endforelse
+            </tbody></table></div>
+        </div>
+    </div>
+    <div class="card border-0 shadow-sm mt-2">
+        <div class="card-body py-3"><i class="fas fa-info-circle text-primary mr-2"></i><span class="text-muted">Le PDF global regroupe tous les semestres visibles. Le PDF par semestre regroupe toutes ses filières. Le PDF par filière reste limité au semestre sélectionné. L'emploi professeur regroupe ses modules, filières, groupes, créneaux et salles.</span></div>
     </div>
 </div>
 @endsection
+@section('plugins.Datatables', true)
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function(){
@@ -93,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function(){
         semester.options[0].textContent=id?(visible?'-- Choisir un semestre --':'Aucun semestre disponible'):'-- Choisir d’abord une filière --';
     }
     program.addEventListener('change',updateSemesters); updateSemesters();
+    if (window.jQuery && $.fn.DataTable) $('#professorEtatTable').DataTable({pageLength:10,order:[[0,'asc']],language:{url:'https://cdn.datatables.net/plug-ins/1.13.7/i18n/fr-FR.json'}});
 });
 </script>
 @endpush

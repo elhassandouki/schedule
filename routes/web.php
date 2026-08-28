@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/etat/pdf/global', [TimetableExportController::class, 'globalPdf'])->name('etat.pdf.global');
     Route::get('/etat/pdf/semestre', [TimetableExportController::class, 'semesterPdf'])->name('etat.pdf.semester');
     Route::get('/etat/pdf/filiere', [TimetableExportController::class, 'programPdf'])->name('etat.pdf.program');
+    Route::get('/etat/pdf/professeur', [TimetableExportController::class, 'professorPdf'])->name('etat.pdf.professor');
     Route::get('/timetable/semestre/{number}', [DashboardController::class, 'showByNumber'])->name('timetable.semester-number');
     Route::get('/timetable/{semester}', [DashboardController::class, 'show'])->name('timetable.show');
     Route::get('/timetable/{semester}/export-pdf', [TimetableExportController::class, 'pdf'])->name('timetable.export.pdf');
