@@ -9,6 +9,8 @@
 @endsection
 @section('content')
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+@include('partials.excel-import', ['importType' => 'professors'])
 
 <div class="card card-primary card-outline">
     <div class="card-header">

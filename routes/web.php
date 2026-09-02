@@ -9,6 +9,7 @@ use App\Http\Controllers\TimetableExportController;
 use App\Http\Controllers\ProfessorController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\ExcelImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -41,6 +42,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:super_admin,sous_admin,chef_departement,chef_filiere')->group(function () {
         Route::get('/gestion/professeurs', [ProfessorController::class, 'index'])->name('professors.index');
+        Route::get('/gestion/professeurs/import/template', [ExcelImportController::class, 'professorsTemplate'])->name('professors.import.template');
+        Route::post('/gestion/professeurs/import', [ExcelImportController::class, 'professors'])->name('professors.import');
         Route::get('/gestion/professeurs/ajouter', [ProfessorController::class, 'create'])->name('professors.create');
         Route::post('/gestion/professeurs', [ProfessorController::class, 'store'])->name('professors.store');
                 Route::get('/gestion/professeurs/{professor}/disponibilites', [ProfessorController::class, 'availabilities'])->name('professors.availabilities');
@@ -52,6 +55,8 @@ Route::middleware('auth')->group(function () {
             ->parameters(['sessions' => 'timetableSession'])
             ->names('timetable')
             ->except('show');
+        Route::get('/gestion/modules/import/template', [ExcelImportController::class, 'modulesTemplate'])->name('modules.import.template');
+        Route::post('/gestion/modules/import', [ExcelImportController::class, 'modules'])->name('modules.import');
         Route::get('/gestion/{resource}', [CrudController::class, 'index'])->name('crud.index');
         Route::get('/gestion/{resource}/ajouter', [CrudController::class, 'create'])->name('crud.create');
         Route::post('/gestion/{resource}', [CrudController::class, 'store'])->name('crud.store');
